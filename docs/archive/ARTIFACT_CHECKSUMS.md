@@ -1,0 +1,12 @@
+# Preserved artifact checksums
+
+These SHA-256 values identify the page-faithful files preserved in Brian Tenneson's private file library and the current conversation deliverables. They allow later copies to be checked against the versions used for this repository snapshot.
+
+```text
+fb33affbdba98d9594c346529a4628702235edca18f30eaf4504fe16fec61b04  Data-ATP Phase 0 Source.pdf
+731030721f782ef72cad4e486cfd8cf04fa806b0d792a28ab7bf0b0f43ce1dbd  Data-ATP_Phase_0_Conceptual_Architecture_Brian_Tenneson.pdf
+ce8c8e8bd4d009c1b6f60ad1e929099cabf9c58c3ed253650687f2ce33a006dd  Data-ATP_Moriarty_Module_Proposal.pdf
+9ea97762c91f5cd0c814d255f5c0e4bad2e271987fe1c3f8b9206359b01ddfda  Data-ATP_Moriarty_Module_Proposal.tex
+cf13f4af1ed283fc5e05b45766e6c81f748f878c67ff16a4ade1d5de68929862  Budget_Balanced_Hilbert_Coverage_Brian_Tenneson.pdf
+60e6702b7205439090b94a64a526f6140d496a6d11310cb4ec997a052ae7bf28  hilbert_budget_coverage.tex
+```
