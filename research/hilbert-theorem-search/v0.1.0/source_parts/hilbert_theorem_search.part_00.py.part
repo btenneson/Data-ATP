@@ -1,0 +1,180 @@
+#!/usr/bin/env python3
+"""Hilbert Space Filling Curve-Style Theorem Search.
+
+By ChatGPT, inspired by Brian Tenneson.
+
+This is a self-contained reference implementation of a budgeted theorem-
+discovery engine.  It combines:
+
+1. Brian Tenneson's explicit surjection N+ -> Q and least-preimage section;
+2. an explicit line numbering of rational n-cubes;
+3. injective rational coordinates for WFF/Godel line numbers;
+4. arbitrary-dimensional discrete Hilbert traversal (Skilling-style);
+5. a coproduct of rule-arity premise spaces;
+6. frozen theorem-discovery epochs, proof certificates, and an independent
+   verifier;
+7. expansion and address-visit budgets with partial coverage reports.
+
+The executable toy formal system at the bottom has rules of arity 1, 2, and 3.
+It is intentionally small enough to audit.  Replacing it with Metamath, Lean,
+or another formal system requires adapters for formula encoding, legal rule
+application, and certificate verification; the Hilbert scheduler itself is
+formal-system agnostic.
+"""
+
+from __future__ import annotations
+
+__version__ = "0.1.0"
+
+from dataclasses import asdict, dataclass, field
+from fractions import Fraction
+import hashlib
+import json
+import math
+from typing import (
+    Callable,
+    Generic,
+    Hashable,
+    Iterable,
+    Iterator,
+    Mapping,
+    Protocol,
+    Sequence,
+    TypeVar,
+)
+
+FormulaT = TypeVar("FormulaT", bound=Hashable)
+
+
+# ---------------------------------------------------------------------------
+# Part I. Brian Tenneson's N+ -> Q formulas and rational-cube line numbers
+# ---------------------------------------------------------------------------
+
+
+def _round_sqrt_2n(n: int) -> int:
+    """Return floor(sqrt(2n) + 1/2) using exact integer arithmetic."""
+    if n < 0:
+        raise ValueError("n must be nonnegative")
+    x = 2 * n
+    a = math.isqrt(x)
+    # sqrt(x) >= a + 1/2 iff 4x >= (2a+1)^2.
+    return a + (1 if 4 * x >= (2 * a + 1) ** 2 else 0)
+
+
+def a002260(n: int) -> int:
+    """Tenneson's closed form for the Smarandache crescendo coordinate."""
+    t = _round_sqrt_2n(n)
+    return (2 * n + t - t * t) // 2
+
+
+def a004736(n: int) -> int:
+    """Tenneson's closed form for the Smarandache decrescendo coordinate."""
+    t = _round_sqrt_2n(n)
+    return (2 - 2 * n + t + t * t) // 2
+
+
+def tenneson_r(n: int) -> Fraction:
+    """Brian Tenneson's explicit surjection r: N+ -> Q.
+
+    r(n) = (-1)^n A002260(floor(n/2)) / A004736(floor(n/2)).
+    """
+    if n < 1:
+        raise ValueError("n must be a positive integer")
+    m = n // 2
+    numerator = a002260(m)
+    denominator = a004736(m)
+    sign = -1 if n % 2 else 1
+    return Fraction(sign * numerator, denominator)
+
+
+def tenneson_s(value: Fraction | int) -> int:
+    """Return the least n >= 1 with tenneson_r(n) == value.
+
+    The input Fraction is automatically reduced.  This is the right inverse
+    (section) from Tenneson's paper: r(s(q)) = q.
+    """
+    q = Fraction(value)
+    p = q.numerator
+    d = q.denominator
+    if p >= 1:
+        return 2 - p + p * p - 3 * d + 2 * p * d + d * d
+    return 3 + p + p * p - 3 * d - 2 * p * d + d * d
+
+
+def pair_positive(a: int, b: int) -> int:
+    """Tenneson's/Cantor-style bijection N+ x N+ -> N+."""
+    if a < 1 or b < 1:
+        raise ValueError("pair_positive requires positive integers")
+    return ((a + b - 1) * (a + b - 2)) // 2 + a
+
+
+def unpair_positive(line: int) -> tuple[int, int]:
+    """Inverse of pair_positive using A002260 and A004736."""
+    if line < 1:
+        raise ValueError("line must be positive")
+    return a002260(line), a004736(line)
+
+
+def pair_tuple(values: Sequence[int]) -> int:
+    """Recursively encode a nonempty positive-integer tuple as one line."""
+    if not values:
+        raise ValueError("cannot encode an empty tuple")
+    if any(value < 1 for value in values):
+        raise ValueError("tuple entries must be positive")
+    code = values[-1]
+    for value in reversed(values[:-1]):
+        code = pair_positive(value, code)
+    return code
+
+
+def unpair_tuple(line: int, dimension: int) -> tuple[int, ...]:
+    """Decode one positive line into a positive-integer tuple of given length."""
+    if line < 1:
+        raise ValueError("line must be positive")
+    if dimension < 1:
+        raise ValueError("dimension must be positive")
+    if dimension == 1:
+        return (line,)
+    first, rest = unpair_positive(line)
+    return (first,) + unpair_tuple(rest, dimension - 1)
+
+
+def unit_rational(line: int) -> Fraction:
+    """Explicit surjection N+ -> Q intersect [0,1].
+
+    Line 1 is reserved for 1.  All other lines transport Tenneson's rational
+    enumeration through |q|/(1+|q|), which is rational and lies in [0,1).
+    """
+    if line < 1:
+        raise ValueError("line must be positive")
+    if line == 1:
+        return Fraction(1, 1)
+    q = abs(tenneson_r(line - 1))
+    return q / (1 + q)
+
+
+def unit_rational_section(value: Fraction | int) -> int:
+    """Canonical least line for a rational in [0,1].
+
+    For 0 <= q < 1, invert q = t/(1+t) by t = q/(1-q), then invoke
+    Tenneson's least-preimage section and shift by one.
+    """
+    q = Fraction(value)
+    if q < 0 or q > 1:
+        raise ValueError("value must lie in Q intersect [0,1]")
+    if q == 1:
+        return 1
+    t = q / (1 - q)
+    return tenneson_s(t) + 1
+
+
+def rational_cube_point(line: int, dimension: int) -> tuple[Fraction, ...]:
+    """Decode one line into a point of (Q intersect [0,1])^dimension."""
+    indices = unpair_tuple(line, dimension)
+    return tuple(unit_rational(index) for index in indices)
+
+
+def rational_cube_line(point: Sequence[Fraction | int]) -> int:
+    """Return a canonical line for a rational point in the unit n-cube."""
+    if not point:
+        raise ValueError("point must be nonempty")
