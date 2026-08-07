@@ -16,6 +16,7 @@ class AuthorityLevel(StrEnum):
 class Decision(StrEnum):
     FOLLOW_DIRECTIVE = "follow_directive"
     OVERRIDE_SOFT_DIRECTIVE = "override_soft_directive"
+    REJECT_RUN_CONTROL = "reject_run_control"
     REJECT_ILLEGAL = "reject_illegal"
     REJECT_HARD_CONFLICT = "reject_hard_conflict"
     REJECT_BUDGET = "reject_budget"
