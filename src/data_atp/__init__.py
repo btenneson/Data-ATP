@@ -18,6 +18,7 @@ from .coverage import (
 )
 from .engine import AccountableSearchEngine, RunOutcome
 from .events import EventType, Transaction, TransactionLog
+from .picard import PicardCommand, PicardController, PicardStatus, RunControlState
 
 __all__ = [
     "AccountableAutonomyController",
@@ -29,6 +30,10 @@ __all__ = [
     "Evidence",
     "EventType",
     "ExceptionPolicy",
+    "PicardCommand",
+    "PicardController",
+    "PicardStatus",
+    "RunControlState",
     "RunOutcome",
     "Transaction",
     "TransactionLog",
