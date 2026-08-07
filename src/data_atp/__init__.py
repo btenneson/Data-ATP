@@ -9,6 +9,12 @@ from .autonomy import (
     Evidence,
     ExceptionPolicy,
 )
+from .checkpoint import (
+    CHECKPOINT_SCHEMA_VERSION,
+    CheckpointError,
+    CheckpointManager,
+    CheckpointManifest,
+)
 from .coverage import (
     completed_level_for_budget,
     coverage_defect_bound,
@@ -25,6 +31,10 @@ __all__ = [
     "AccountableSearchEngine",
     "ActionCandidate",
     "AuthorityLevel",
+    "CHECKPOINT_SCHEMA_VERSION",
+    "CheckpointError",
+    "CheckpointManager",
+    "CheckpointManifest",
     "Decision",
     "Directive",
     "Evidence",
