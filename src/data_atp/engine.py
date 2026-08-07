@@ -14,6 +14,7 @@ from .autonomy import (
     Evidence,
 )
 from .events import EventType, TransactionLog
+from .picard import PicardController
 
 
 @dataclass(frozen=True, slots=True)
@@ -25,11 +26,17 @@ class RunOutcome:
 
 
 class AccountableSearchEngine:
-    """Execute one bounded action while preserving verifier supremacy."""
+    """Execute one bounded action while preserving verifier and Picard supremacy."""
 
-    def __init__(self, log: TransactionLog, controller: AccountableAutonomyController) -> None:
+    def __init__(
+        self,
+        log: TransactionLog,
+        controller: AccountableAutonomyController,
+        picard: PicardController | None = None,
+    ) -> None:
         self.log = log
         self.controller = controller
+        self.picard = picard
 
     def run_action(
         self,
@@ -40,6 +47,25 @@ class AccountableSearchEngine:
         execute: Callable[[ActionCandidate], str | None],
         verify: Callable[[str], bool],
     ) -> RunOutcome:
+        if self.picard is not None and not self.picard.status().may_dispatch_work:
+            reason = f"Picard blocks work dispatch while state={self.picard.state}."
+            self.log.append(
+                EventType.ACTION_REJECTED,
+                {
+                    "action_id": action.action_id,
+                    "decision": Decision.REJECT_RUN_CONTROL,
+                    "reason": reason,
+                    "run_id": self.picard.run_id,
+                    "run_state": self.picard.state,
+                },
+            )
+            return RunOutcome(
+                AutonomyDecision(Decision.REJECT_RUN_CONTROL, reason, False),
+                False,
+                None,
+                remaining_budget,
+            )
+
         decision = self.controller.decide(directive, action, evidence, remaining_budget)
         executable = decision.decision in {Decision.FOLLOW_DIRECTIVE, Decision.OVERRIDE_SOFT_DIRECTIVE}
         if not executable:
