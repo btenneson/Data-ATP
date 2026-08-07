@@ -1,0 +1,155 @@
+                "new_theorems": tuple(record.wff_line for record in committed),
+            },
+        )
+
+        return EpochReport(
+            epoch=epoch,
+            frozen_theorem_count=theorem_count,
+            ambient_dimension=self.system.ambient_orthogonal_dimension,
+            expansions_used=start_expansions - budget.expansions_remaining,
+            address_visits_used=start_visits - budget.address_visits_remaining,
+            verifier_calls_used=start_verifier - budget.verifier_calls_remaining,
+            new_theorems=committed,
+            rule_coverage=tuple(
+                coverage[rule.name].freeze(cursors[rule.name].done)
+                for rule in positive_rules
+            ),
+            complete=complete,
+            log_chain_valid=self.log.verify(),
+        )
+
+    def discover(
+        self,
+        budget: Budget,
+        max_epochs: int | None = None,
+        stop_when_saturated: bool = True,
+    ) -> tuple[EpochReport[FormulaT], ...]:
+        reports: list[EpochReport[FormulaT]] = []
+        while (
+            budget.expansions_remaining > 0
+            and budget.address_visits_remaining > 0
+            and budget.verifier_calls_remaining > 0
+            and (max_epochs is None or len(reports) < max_epochs)
+        ):
+            report = self.run_epoch(budget)
+            reports.append(report)
+            if stop_when_saturated and report.complete and not report.new_theorems:
+                break
+            if not report.complete:
+                break
+        return tuple(reports)
+
+
+# ---------------------------------------------------------------------------
+# Part V. Exhaustive baseline and an executable toy formal system
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True, order=True, slots=True)
+class ToyFormula:
+    """Toy WFF P(n), represented by a bounded nonnegative integer n."""
+
+    value: int
+
+    def __str__(self) -> str:
+        return f"P({self.value})"
+
+
+def make_toy_system(max_value: int = 12) -> FormalSystem[ToyFormula]:
+    """Create a finite system with unary, binary, and ternary rules.
+
+    Axioms: P(0), P(1)
+    succ:   P(a) -> P(a+1)
+    add:    P(a), P(b) -> P(a+b)
+    affine: P(a), P(b), P(c) -> P(a+2b+3c)
+
+    Conclusions above max_value are undefined and produce no formula.
+    """
+    if max_value < 1:
+        raise ValueError("max_value must be at least 1")
+
+    def bounded(value: int) -> tuple[ToyFormula, ...]:
+        return (ToyFormula(value),) if 0 <= value <= max_value else ()
+
+    def succ(premises: tuple[ToyFormula, ...]) -> Iterable[ToyFormula]:
+        (a,) = premises
+        return bounded(a.value + 1)
+
+    def add(premises: tuple[ToyFormula, ...]) -> Iterable[ToyFormula]:
+        a, b = premises
+        return bounded(a.value + b.value)
+
+    def affine(premises: tuple[ToyFormula, ...]) -> Iterable[ToyFormula]:
+        a, b, c = premises
+        return bounded(a.value + 2 * b.value + 3 * c.value)
+
+    return FormalSystem(
+        name=f"Bounded toy arithmetic through {max_value}",
+        axioms=(ToyFormula(0), ToyFormula(1)),
+        rules=(
+            InferenceRule("succ", 1, succ),
+            InferenceRule("add", 2, add),
+            InferenceRule("affine", 3, affine),
+        ),
+        encode_formula=lambda formula: formula.value,
+        canonical_key=lambda formula: formula.value,
+    )
+
+
+def exhaustive_direct_consequences(
+    system: FormalSystem[FormulaT],
+    formulas: Sequence[FormulaT],
+) -> set[FormulaT]:
+    """Reference implementation of one direct-consequence layer."""
+    import itertools
+
+    result = set(formulas)
+    for rule in system.rules:
+        if rule.arity == 0:
+            tuples: Iterable[tuple[FormulaT, ...]] = [()]
+        else:
+            tuples = itertools.product(formulas, repeat=rule.arity)
+        for premises in tuples:
+            result.update(rule.derive(tuple(premises)))
+    return result
+
+
+def demo() -> None:
+    system = make_toy_system(max_value=12)
+    search = HilbertTheoremSearch(system)
+    budget = Budget(
+        expansions_remaining=20_000,
+        address_visits_remaining=30_000,
+        verifier_calls_remaining=20_000,
+    )
+    reports = search.discover(budget, max_epochs=8)
+
+    print("Hilbert Space Filling Curve-Style Theorem Search")
+    print("By ChatGPT, inspired by Brian Tenneson")
+    print(f"Formal system: {system.name}")
+    print(f"Ambient orthogonal dimension K = {system.ambient_orthogonal_dimension}")
+    print()
+
+    for report in reports:
+        print(
+            f"epoch={report.epoch} frozen={report.frozen_theorem_count} "
+            f"expansions={report.expansions_used} "
+            f"new={len(report.new_theorems)} complete={report.complete}"
+        )
+        for item in report.rule_coverage:
+            print(
+                f"  {item.rule_name:<8} arity={item.arity} "
+                f"cells={item.cells_visited}/{item.cells_total} "
+                f"tuples={item.valid_tuples_attempted} "
+                f"padding={item.padding_cells_visited}"
+            )
+
+    formulas = [record.formula for record in search.database.frozen_records()]
+    print()
+    print("Verified theorem database:")
+    print(", ".join(str(formula) for formula in formulas))
+    print("Hash chain valid:", search.log.verify())
+
+
+if __name__ == "__main__":
+    demo()
