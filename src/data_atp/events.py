@@ -7,6 +7,8 @@ from datetime import datetime, timezone
 from enum import StrEnum
 import hashlib
 import json
+import os
+from pathlib import Path
 from typing import Any, Iterable
 
 
@@ -47,10 +49,29 @@ class Transaction:
 
 
 class TransactionLog:
-    """In-memory append-only log with a deterministic SHA-256 hash chain."""
+    """Append-only SHA-256 hash chain, optionally persisted as JSONL.
 
-    def __init__(self) -> None:
+    ``TransactionLog()`` remains an in-memory log for tests and small tools.
+    Passing ``path`` makes each accepted append durable before it is exposed to
+    callers. Existing JSONL logs are reloaded and verified on construction;
+    malformed or hash-inconsistent logs fail closed.
+    """
+
+    def __init__(self, path: str | Path | None = None) -> None:
         self._items: list[Transaction] = []
+        self._path = Path(path) if path is not None else None
+        if self._path is not None:
+            self._path.parent.mkdir(parents=True, exist_ok=True)
+            if self._path.exists() and self._path.stat().st_size:
+                self._load_existing()
+
+    @property
+    def path(self) -> Path | None:
+        return self._path
+
+    @property
+    def last_digest(self) -> str:
+        return self._items[-1].digest if self._items else "GENESIS"
 
     @staticmethod
     def _digest(
@@ -70,10 +91,72 @@ class TransactionLog:
         raw = json.dumps(record, sort_keys=True, separators=(",", ":"), default=str)
         return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
+    @staticmethod
+    def _record_dict(tx: Transaction) -> dict[str, Any]:
+        return {
+            "sequence": tx.sequence,
+            "event_type": str(tx.event_type),
+            "payload": tx.payload,
+            "timestamp_utc": tx.timestamp_utc,
+            "previous_hash": tx.previous_hash,
+            "digest": tx.digest,
+        }
+
+    def _load_existing(self) -> None:
+        assert self._path is not None
+        previous = "GENESIS"
+        try:
+            with self._path.open("r", encoding="utf-8") as handle:
+                for expected_sequence, line in enumerate(handle):
+                    if not line.strip():
+                        raise ValueError(f"blank transaction-log line at {expected_sequence + 1}")
+                    record = json.loads(line)
+                    tx = Transaction(
+                        sequence=int(record["sequence"]),
+                        event_type=EventType(record["event_type"]),
+                        payload=dict(record["payload"]),
+                        timestamp_utc=str(record["timestamp_utc"]),
+                        previous_hash=str(record["previous_hash"]),
+                        digest=str(record["digest"]),
+                    )
+                    if tx.sequence != expected_sequence:
+                        raise ValueError("transaction sequence is not contiguous")
+                    if tx.previous_hash != previous:
+                        raise ValueError("transaction previous_hash chain is broken")
+                    expected_digest = self._digest(
+                        tx.sequence,
+                        tx.event_type,
+                        tx.payload,
+                        tx.timestamp_utc,
+                        tx.previous_hash,
+                    )
+                    if tx.digest != expected_digest:
+                        raise ValueError("transaction digest verification failed")
+                    self._items.append(tx)
+                    previous = tx.digest
+        except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+            self._items.clear()
+            raise ValueError(f"cannot load trusted transaction log {self._path}: {exc}") from exc
+
+    def _persist(self, tx: Transaction) -> None:
+        if self._path is None:
+            return
+        line = json.dumps(
+            self._record_dict(tx),
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+            default=str,
+        ) + "\n"
+        with self._path.open("a", encoding="utf-8", newline="\n") as handle:
+            handle.write(line)
+            handle.flush()
+            os.fsync(handle.fileno())
+
     def append(self, event_type: EventType, payload: dict[str, Any]) -> Transaction:
         sequence = len(self._items)
         timestamp = datetime.now(timezone.utc).isoformat()
-        previous_hash = self._items[-1].digest if self._items else "GENESIS"
+        previous_hash = self.last_digest
         digest = self._digest(sequence, event_type, payload, timestamp, previous_hash)
         tx = Transaction(
             sequence=sequence,
@@ -83,6 +166,7 @@ class TransactionLog:
             previous_hash=previous_hash,
             digest=digest,
         )
+        self._persist(tx)
         self._items.append(tx)
         return tx
 
