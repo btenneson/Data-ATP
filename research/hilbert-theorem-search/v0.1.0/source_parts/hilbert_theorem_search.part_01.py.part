@@ -1,0 +1,180 @@
+    return pair_tuple([unit_rational_section(Fraction(x)) for x in point])
+
+
+def wff_coordinate(godel_line: int) -> Fraction:
+    """Injectively place a zero-based WFF/Godel line in Q intersect [0,1).
+
+    iota(g) = g/(g+1).  Unlike a merely surjective enumeration, this map never
+    identifies two different WFF line numbers.
+    """
+    if godel_line < 0:
+        raise ValueError("godel_line must be nonnegative")
+    return Fraction(godel_line, godel_line + 1)
+
+
+def wff_line_from_coordinate(value: Fraction | int) -> int:
+    """Inverse of wff_coordinate on its image."""
+    q = Fraction(value)
+    if q < 0 or q >= 1:
+        raise ValueError("WFF coordinate must lie in [0,1)")
+    candidate = q / (1 - q)
+    if candidate.denominator != 1:
+        raise ValueError("coordinate is not in the image of wff_coordinate")
+    return candidate.numerator
+
+
+def premise_point(godel_lines: Sequence[int]) -> tuple[Fraction, ...]:
+    """Rational point encoding an ordered tuple of WFF line numbers."""
+    if not godel_lines:
+        raise ValueError("premise tuple must be nonempty")
+    return tuple(wff_coordinate(line) for line in godel_lines)
+
+
+def premise_point_line(godel_lines: Sequence[int]) -> int:
+    """Canonical global line of an ordered premise tuple."""
+    return rational_cube_line(premise_point(godel_lines))
+
+
+def inference_address_line(rule_tag: int, premise_godel_lines: Sequence[int]) -> int:
+    """One global line for a tagged coproduct inference address.
+
+    rule_tag is zero-based.  The +1 converts it to the positive convention used
+    by pair_positive.
+    """
+    if rule_tag < 0:
+        raise ValueError("rule_tag must be nonnegative")
+    return pair_positive(rule_tag + 1, premise_point_line(premise_godel_lines))
+
+
+# ---------------------------------------------------------------------------
+# Part II. Arbitrary-dimensional discrete Hilbert traversal
+# ---------------------------------------------------------------------------
+
+
+class HilbertCurve:
+    """Discrete Hilbert index <-> coordinate map in arbitrary dimension.
+
+    This implementation follows the transpose/Gray-code method associated with
+    John Skilling's "Programming the Hilbert curve".  At `bits` bits per axis
+    and `dimension` axes it is a bijection between
+
+        {0, ..., 2^(bits*dimension)-1}
+
+    and
+
+        {0, ..., 2^bits-1}^dimension.
+    """
+
+    def __init__(self, dimension: int, bits: int) -> None:
+        if dimension < 1:
+            raise ValueError("dimension must be positive")
+        if bits < 0:
+            raise ValueError("bits must be nonnegative")
+        self.dimension = dimension
+        self.bits = bits
+        self.side = 1 << bits
+        self.size = 1 << (bits * dimension)
+
+    def _integer_to_transpose(self, distance: int) -> list[int]:
+        if self.bits == 0:
+            return [0] * self.dimension
+        bit_string = format(distance, f"0{self.bits * self.dimension}b")
+        return [
+            int(bit_string[axis :: self.dimension], 2)
+            for axis in range(self.dimension)
+        ]
+
+    def _transpose_to_integer(self, coordinates: Sequence[int]) -> int:
+        if self.bits == 0:
+            return 0
+        words = [format(value, f"0{self.bits}b") for value in coordinates]
+        interleaved = "".join(
+            words[axis][bit]
+            for bit in range(self.bits)
+            for axis in range(self.dimension)
+        )
+        return int(interleaved, 2)
+
+    def point_from_distance(self, distance: int) -> tuple[int, ...]:
+        """Decode a Hilbert step number into grid coordinates."""
+        if distance < 0 or distance >= self.size:
+            raise ValueError(f"distance must lie in [0, {self.size})")
+        if self.bits == 0:
+            return (0,) * self.dimension
+
+        x = self._integer_to_transpose(distance)
+
+        # Gray decode.
+        t = x[self.dimension - 1] >> 1
+        for axis in range(self.dimension - 1, 0, -1):
+            x[axis] ^= x[axis - 1]
+        x[0] ^= t
+
+        # Undo the dimension-dependent excess work.
+        q = 2
+        limit = 1 << self.bits
+        while q != limit:
+            p = q - 1
+            for axis in range(self.dimension - 1, -1, -1):
+                if x[axis] & q:
+                    x[0] ^= p
+                else:
+                    t = (x[0] ^ x[axis]) & p
+                    x[0] ^= t
+                    x[axis] ^= t
+            q <<= 1
+
+        return tuple(x)
+
+    def distance_from_point(self, point: Sequence[int]) -> int:
+        """Encode grid coordinates as their Hilbert step number."""
+        if len(point) != self.dimension:
+            raise ValueError("point has the wrong dimension")
+        if any(value < 0 or value >= self.side for value in point):
+            raise ValueError(f"coordinates must lie in [0, {self.side})")
+        if self.bits == 0:
+            return 0
+
+        x = list(point)
+        q = 1 << (self.bits - 1)
+
+        # Inverse of the final exchange/invert stage.
+        while q > 1:
+            p = q - 1
+            for axis in range(self.dimension):
+                if x[axis] & q:
+                    x[0] ^= p
+                else:
+                    t = (x[0] ^ x[axis]) & p
+                    x[0] ^= t
+                    x[axis] ^= t
+            q >>= 1
+
+        # Gray encode.
+        for axis in range(1, self.dimension):
+            x[axis] ^= x[axis - 1]
+        t = 0
+        q = 1 << (self.bits - 1)
+        while q > 1:
+            if x[self.dimension - 1] & q:
+                t ^= q - 1
+            q >>= 1
+        for axis in range(self.dimension):
+            x[axis] ^= t
+
+        return self._transpose_to_integer(x)
+
+    def points(self) -> Iterator[tuple[int, ...]]:
+        for distance in range(self.size):
+            yield self.point_from_distance(distance)
+
+
+@dataclass(slots=True)
+class HilbertCursor:
+    """Mutable cursor over one finite Hilbert approximant."""
+
+    dimension: int
+    bits: int
+    next_distance: int = 0
+    curve: HilbertCurve = field(init=False)
+

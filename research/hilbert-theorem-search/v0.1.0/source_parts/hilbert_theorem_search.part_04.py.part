@@ -1,0 +1,180 @@
+            valid_tuples_attempted=self.valid_tuples_attempted,
+            padding_cells_visited=self.padding_cells_visited,
+            verified_novel_candidates=self.verified_novel_candidates,
+            complete=complete,
+        )
+
+
+class HilbertTheoremSearch(Generic[FormulaT]):
+    """Budgeted theorem-discovery engine over a coproduct of rule cubes."""
+
+    def __init__(
+        self,
+        system: FormalSystem[FormulaT],
+        scheduler: RuleScheduler[FormulaT] | None = None,
+    ) -> None:
+        self.system = system
+        self.verifier = IndependentVerifier(system)
+        self.database = TheoremDatabase(system, self.verifier)
+        self.scheduler = scheduler or RoundRobinScheduler()
+        self.log = HashChainLog()
+        self.epoch = 0
+
+    def _certificate(
+        self,
+        rule_tag: int,
+        rule: InferenceRule[FormulaT],
+        premises: tuple[TheoremRecord[FormulaT], ...],
+        conclusion: FormulaT,
+    ) -> ProofCertificate[FormulaT]:
+        lines = tuple(record.wff_line for record in premises)
+        return ProofCertificate(
+            conclusion=conclusion,
+            conclusion_line=self.system.encode_formula(conclusion),
+            rule_name=rule.name,
+            premise_lines=lines,
+            premise_formulas=tuple(record.formula for record in premises),
+            inference_line=inference_address_line(rule_tag, lines),
+        )
+
+    def run_epoch(self, budget: Budget) -> EpochReport[FormulaT]:
+        """Run one frozen theorem-discovery epoch.
+
+        New conclusions are staged and become usable as premises only after the
+        epoch ends.  A complete epoch therefore computes exactly one direct-
+        consequence layer relative to the frozen theorem set.
+        """
+        self.epoch += 1
+        epoch = self.epoch
+        frozen = self.database.frozen_records()
+        theorem_count = len(frozen)
+        bits = max(0, (theorem_count - 1).bit_length())
+
+        positive_rules = [rule for rule in self.system.rules if rule.arity > 0]
+        cursors = {
+            rule.name: HilbertCursor(rule.arity, bits) for rule in positive_rules
+        }
+        coverage = {
+            rule.name: _MutableCoverage(
+                rule_name=rule.name,
+                arity=rule.arity,
+                hilbert_bits=bits,
+                cells_total=cursors[rule.name].total_cells,
+            )
+            for rule in positive_rules
+        }
+        staged: dict[FormulaT, ProofCertificate[FormulaT]] = {}
+
+        start_expansions = budget.expansions_remaining
+        start_visits = budget.address_visits_remaining
+        start_verifier = budget.verifier_calls_remaining
+
+        self.log.append(
+            "EpochStarted",
+            {
+                "epoch": epoch,
+                "frozen_theorems": theorem_count,
+                "hilbert_bits": bits,
+                "ambient_dimension": self.system.ambient_orthogonal_dimension,
+            },
+        )
+
+        # Zero-arity rules are evaluated once per epoch.
+        zero_arity_complete = True
+        for rule_tag, rule in enumerate(self.system.rules):
+            if rule.arity != 0:
+                continue
+            if budget.expansions_remaining <= 0 or budget.verifier_calls_remaining <= 0:
+                zero_arity_complete = False
+                break
+            budget.expansions_remaining -= 1
+            for conclusion in rule.derive(()):
+                if self.database.contains(conclusion) or conclusion in staged:
+                    continue
+                certificate = self._certificate(rule_tag, rule, (), conclusion)
+                budget.verifier_calls_remaining -= 1
+                if self.verifier.verify(certificate, self.database.known_by_line()):
+                    staged[conclusion] = certificate
+
+        rule_tag_by_name = {
+            rule.name: tag for tag, rule in enumerate(self.system.rules)
+        }
+
+        while (
+            budget.expansions_remaining > 0
+            and budget.address_visits_remaining > 0
+            and budget.verifier_calls_remaining > 0
+        ):
+            rule = self.scheduler.choose_rule(positive_rules, cursors)
+            if rule is None:
+                break
+
+            cursor = cursors[rule.name]
+            point = cursor.next_point()
+            stat = coverage[rule.name]
+            stat.cells_visited += 1
+            budget.address_visits_remaining -= 1
+
+            self.log.append(
+                "HilbertCellVisited",
+                {
+                    "epoch": epoch,
+                    "rule": rule.name,
+                    "distance": cursor.next_distance - 1,
+                    "point": point,
+                },
+            )
+
+            if any(index >= theorem_count for index in point):
+                stat.padding_cells_visited += 1
+                continue
+
+            premise_records = tuple(frozen[index] for index in point)
+            stat.valid_tuples_attempted += 1
+            budget.expansions_remaining -= 1
+
+            self.log.append(
+                "ExpansionAttempted",
+                {
+                    "epoch": epoch,
+                    "rule": rule.name,
+                    "premise_lines": tuple(item.wff_line for item in premise_records),
+                },
+            )
+
+            conclusions = tuple(rule.derive(tuple(item.formula for item in premise_records)))
+            for conclusion in conclusions:
+                if self.database.contains(conclusion) or conclusion in staged:
+                    continue
+                if budget.verifier_calls_remaining <= 0:
+                    break
+                certificate = self._certificate(
+                    rule_tag_by_name[rule.name], rule, premise_records, conclusion
+                )
+                budget.verifier_calls_remaining -= 1
+                accepted = self.verifier.verify(
+                    certificate, self.database.known_by_line()
+                )
+                self.log.append(
+                    "CandidateVerified",
+                    {
+                        "epoch": epoch,
+                        "rule": rule.name,
+                        "conclusion_line": certificate.conclusion_line,
+                        "accepted": accepted,
+                        "inference_line": certificate.inference_line,
+                    },
+                )
+                if accepted:
+                    staged[conclusion] = certificate
+                    stat.verified_novel_candidates += 1
+
+        committed = self.database.commit_staged(staged, epoch)
+        all_positive_complete = all(cursor.done for cursor in cursors.values())
+        complete = all_positive_complete and zero_arity_complete
+
+        self.log.append(
+            "EpochFinished",
+            {
+                "epoch": epoch,
+                "complete": complete,

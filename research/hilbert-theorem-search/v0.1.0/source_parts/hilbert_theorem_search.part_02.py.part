@@ -1,0 +1,180 @@
+    def __post_init__(self) -> None:
+        self.curve = HilbertCurve(self.dimension, self.bits)
+
+    @property
+    def done(self) -> bool:
+        return self.next_distance >= self.curve.size
+
+    @property
+    def total_cells(self) -> int:
+        return self.curve.size
+
+    def next_point(self) -> tuple[int, ...]:
+        if self.done:
+            raise StopIteration
+        point = self.curve.point_from_distance(self.next_distance)
+        self.next_distance += 1
+        return point
+
+
+# ---------------------------------------------------------------------------
+# Part III. Formal-system interfaces, certificates, and theorem storage
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True, slots=True)
+class InferenceRule(Generic[FormulaT]):
+    """A finitary inference rule.
+
+    `derive` may return zero, one, or several conclusions for one ordered
+    premise tuple.  It must be deterministic for reproducible runs.
+    """
+
+    name: str
+    arity: int
+    derive: Callable[[tuple[FormulaT, ...]], Iterable[FormulaT]]
+
+    def __post_init__(self) -> None:
+        if self.arity < 0:
+            raise ValueError("rule arity must be nonnegative")
+
+
+@dataclass(frozen=True, slots=True)
+class FormalSystem(Generic[FormulaT]):
+    name: str
+    axioms: tuple[FormulaT, ...]
+    rules: tuple[InferenceRule[FormulaT], ...]
+    encode_formula: Callable[[FormulaT], int]
+    canonical_key: Callable[[FormulaT], object] = repr
+
+    def __post_init__(self) -> None:
+        names = [rule.name for rule in self.rules]
+        if len(names) != len(set(names)):
+            raise ValueError("rule names must be unique")
+        axiom_codes = [self.encode_formula(axiom) for axiom in self.axioms]
+        if any(code < 0 for code in axiom_codes):
+            raise ValueError("formula encodings must be nonnegative")
+        if len(axiom_codes) != len(set(axiom_codes)):
+            raise ValueError("axioms must have distinct formula encodings")
+
+    @property
+    def ambient_orthogonal_dimension(self) -> int:
+        return sum(rule.arity for rule in self.rules)
+
+    def rule_by_name(self, name: str) -> InferenceRule[FormulaT]:
+        for rule in self.rules:
+            if rule.name == name:
+                return rule
+        raise KeyError(name)
+
+
+@dataclass(frozen=True, slots=True)
+class ProofCertificate(Generic[FormulaT]):
+    conclusion: FormulaT
+    conclusion_line: int
+    rule_name: str
+    premise_lines: tuple[int, ...]
+    premise_formulas: tuple[FormulaT, ...]
+    inference_line: int | None
+
+
+@dataclass(frozen=True, slots=True)
+class TheoremRecord(Generic[FormulaT]):
+    formula: FormulaT
+    wff_line: int
+    certificate: ProofCertificate[FormulaT]
+    discovery_epoch: int
+
+
+class IndependentVerifier(Generic[FormulaT]):
+    """Recompute each claimed rule application outside the scheduler."""
+
+    AXIOM_RULE = "AXIOM"
+
+    def __init__(self, system: FormalSystem[FormulaT]) -> None:
+        self.system = system
+        self._axioms = set(system.axioms)
+
+    def verify(
+        self,
+        certificate: ProofCertificate[FormulaT],
+        known_by_line: Mapping[int, TheoremRecord[FormulaT]],
+    ) -> bool:
+        if self.system.encode_formula(certificate.conclusion) != certificate.conclusion_line:
+            return False
+
+        if certificate.rule_name == self.AXIOM_RULE:
+            return (
+                certificate.conclusion in self._axioms
+                and not certificate.premise_lines
+                and not certificate.premise_formulas
+            )
+
+        try:
+            rule = self.system.rule_by_name(certificate.rule_name)
+        except KeyError:
+            return False
+
+        if len(certificate.premise_lines) != rule.arity:
+            return False
+        if len(certificate.premise_formulas) != rule.arity:
+            return False
+
+        recovered: list[FormulaT] = []
+        for line, claimed_formula in zip(
+            certificate.premise_lines, certificate.premise_formulas, strict=True
+        ):
+            record = known_by_line.get(line)
+            if record is None or record.formula != claimed_formula:
+                return False
+            recovered.append(record.formula)
+
+        produced = tuple(rule.derive(tuple(recovered)))
+        return certificate.conclusion in produced
+
+
+class TheoremDatabase(Generic[FormulaT]):
+    """Monotone verified theorem store with unique WFF line numbers."""
+
+    def __init__(
+        self,
+        system: FormalSystem[FormulaT],
+        verifier: IndependentVerifier[FormulaT],
+    ) -> None:
+        self.system = system
+        self.verifier = verifier
+        self._by_formula: dict[FormulaT, TheoremRecord[FormulaT]] = {}
+        self._by_line: dict[int, TheoremRecord[FormulaT]] = {}
+        self._load_axioms()
+
+    def _load_axioms(self) -> None:
+        for axiom in self.system.axioms:
+            line = self.system.encode_formula(axiom)
+            certificate = ProofCertificate(
+                conclusion=axiom,
+                conclusion_line=line,
+                rule_name=IndependentVerifier.AXIOM_RULE,
+                premise_lines=(),
+                premise_formulas=(),
+                inference_line=None,
+            )
+            record = TheoremRecord(axiom, line, certificate, discovery_epoch=0)
+            if not self.verifier.verify(certificate, self._by_line):
+                raise ValueError(f"axiom failed verification: {axiom!r}")
+            self._insert(record)
+
+    def _insert(self, record: TheoremRecord[FormulaT]) -> None:
+        previous_line = self._by_line.get(record.wff_line)
+        if previous_line is not None and previous_line.formula != record.formula:
+            raise ValueError(
+                f"formula encoder collision at line {record.wff_line}: "
+                f"{previous_line.formula!r} vs {record.formula!r}"
+            )
+        self._by_formula[record.formula] = record
+        self._by_line[record.wff_line] = record
+
+    def contains(self, formula: FormulaT) -> bool:
+        return formula in self._by_formula
+
+    def record_for_formula(self, formula: FormulaT) -> TheoremRecord[FormulaT]:
+        return self._by_formula[formula]

@@ -1,0 +1,180 @@
+
+    def known_by_line(self) -> Mapping[int, TheoremRecord[FormulaT]]:
+        return self._by_line
+
+    def frozen_records(self) -> tuple[TheoremRecord[FormulaT], ...]:
+        return tuple(sorted(self._by_formula.values(), key=lambda item: item.wff_line))
+
+    def commit_staged(
+        self,
+        staged: Mapping[FormulaT, ProofCertificate[FormulaT]],
+        epoch: int,
+    ) -> tuple[TheoremRecord[FormulaT], ...]:
+        accepted: list[TheoremRecord[FormulaT]] = []
+        for formula in sorted(staged, key=self.system.canonical_key):
+            if self.contains(formula):
+                continue
+            certificate = staged[formula]
+            if not self.verifier.verify(certificate, self._by_line):
+                raise ValueError(f"staged certificate failed verification: {formula!r}")
+            record = TheoremRecord(
+                formula=formula,
+                wff_line=certificate.conclusion_line,
+                certificate=certificate,
+                discovery_epoch=epoch,
+            )
+            self._insert(record)
+            accepted.append(record)
+        return tuple(accepted)
+
+    def __len__(self) -> int:
+        return len(self._by_formula)
+
+
+# ---------------------------------------------------------------------------
+# Part IV. Auditable budgets, scheduling, and frozen Hilbert epochs
+# ---------------------------------------------------------------------------
+
+
+@dataclass(slots=True)
+class Budget:
+    expansions_remaining: int
+    address_visits_remaining: int
+    verifier_calls_remaining: int
+
+    def __post_init__(self) -> None:
+        if min(
+            self.expansions_remaining,
+            self.address_visits_remaining,
+            self.verifier_calls_remaining,
+        ) < 0:
+            raise ValueError("budget entries must be nonnegative")
+
+
+@dataclass(frozen=True, slots=True)
+class RuleCoverage:
+    rule_name: str
+    arity: int
+    hilbert_bits: int
+    cells_total: int
+    cells_visited: int
+    valid_tuples_attempted: int
+    padding_cells_visited: int
+    verified_novel_candidates: int
+    complete: bool
+
+
+@dataclass(frozen=True, slots=True)
+class EpochReport(Generic[FormulaT]):
+    epoch: int
+    frozen_theorem_count: int
+    ambient_dimension: int
+    expansions_used: int
+    address_visits_used: int
+    verifier_calls_used: int
+    new_theorems: tuple[TheoremRecord[FormulaT], ...]
+    rule_coverage: tuple[RuleCoverage, ...]
+    complete: bool
+    log_chain_valid: bool
+
+
+class RuleScheduler(Protocol[FormulaT]):
+    def choose_rule(
+        self,
+        rules: Sequence[InferenceRule[FormulaT]],
+        cursors: Mapping[str, HilbertCursor],
+    ) -> InferenceRule[FormulaT] | None:
+        """Return an unfinished positive-arity rule, or None if all are done."""
+
+
+@dataclass(slots=True)
+class RoundRobinScheduler(Generic[FormulaT]):
+    """Deterministic fair scheduler; a learned policy can replace this class."""
+
+    next_index: int = 0
+
+    def choose_rule(
+        self,
+        rules: Sequence[InferenceRule[FormulaT]],
+        cursors: Mapping[str, HilbertCursor],
+    ) -> InferenceRule[FormulaT] | None:
+        eligible = [rule for rule in rules if rule.arity > 0 and not cursors[rule.name].done]
+        if not eligible:
+            return None
+        rule = eligible[self.next_index % len(eligible)]
+        self.next_index += 1
+        return rule
+
+
+class HashChainLog:
+    """Small append-only SHA-256 transaction log."""
+
+    def __init__(self) -> None:
+        self.entries: list[dict[str, object]] = []
+
+    def append(self, event: str, payload: Mapping[str, object]) -> None:
+        previous = self.entries[-1]["digest"] if self.entries else "GENESIS"
+        sequence = len(self.entries)
+        canonical = json.dumps(
+            {
+                "sequence": sequence,
+                "event": event,
+                "payload": payload,
+                "previous": previous,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+            default=str,
+        )
+        digest = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+        self.entries.append(
+            {
+                "sequence": sequence,
+                "event": event,
+                "payload": dict(payload),
+                "previous": previous,
+                "digest": digest,
+            }
+        )
+
+    def verify(self) -> bool:
+        previous = "GENESIS"
+        for sequence, entry in enumerate(self.entries):
+            if entry["sequence"] != sequence or entry["previous"] != previous:
+                return False
+            canonical = json.dumps(
+                {
+                    "sequence": sequence,
+                    "event": entry["event"],
+                    "payload": entry["payload"],
+                    "previous": entry["previous"],
+                },
+                sort_keys=True,
+                separators=(",", ":"),
+                default=str,
+            )
+            expected = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+            if entry["digest"] != expected:
+                return False
+            previous = expected
+        return True
+
+
+@dataclass(slots=True)
+class _MutableCoverage:
+    rule_name: str
+    arity: int
+    hilbert_bits: int
+    cells_total: int
+    cells_visited: int = 0
+    valid_tuples_attempted: int = 0
+    padding_cells_visited: int = 0
+    verified_novel_candidates: int = 0
+
+    def freeze(self, complete: bool) -> RuleCoverage:
+        return RuleCoverage(
+            rule_name=self.rule_name,
+            arity=self.arity,
+            hilbert_bits=self.hilbert_bits,
+            cells_total=self.cells_total,
+            cells_visited=self.cells_visited,
