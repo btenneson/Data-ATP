@@ -4,6 +4,14 @@ Picard is not a prover and never certifies mathematics. It owns the run-control
 state machine and issues typed directives that downstream search components may
 follow or, for soft directives only, challenge through the accountable-autonomy
 controller.
+
+The control-plane analogy is an interrupt controller:
+* PAUSE and GRACEFUL_STOP are cooperative interrupt requests handled at safe
+  work boundaries;
+* EMERGENCY_STOP is a non-maskable-style operator interrupt that terminates
+  further search dispatch and trusted-state commits;
+* soft strategy directives are scheduler guidance, not interrupt requests and
+  not mathematical authority.
 """
 
 from __future__ import annotations
