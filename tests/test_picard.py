@@ -1,7 +1,11 @@
 import unittest
 
 from data_atp import (
+    AccountableAutonomyController,
+    AccountableSearchEngine,
+    ActionCandidate,
     AuthorityLevel,
+    Decision,
     EventType,
     PicardCommand,
     PicardController,
@@ -77,6 +81,47 @@ class PicardTests(unittest.TestCase):
             len(tuple(self.log.events(EventType.PICARD_COMMAND_REJECTED))),
             1,
         )
+        self.assertTrue(self.log.verify())
+
+    def test_paused_picard_blocks_search_engine(self):
+        self.picard.command(PicardCommand.START, "begin run")
+        directive = self.picard.issue_directive("coverage", "normal search policy")
+        self.picard.command(PicardCommand.PAUSE, "operator pause interrupt")
+
+        controller = AccountableAutonomyController(self.log)
+        engine = AccountableSearchEngine(self.log, controller, self.picard)
+        action = ActionCandidate("A1", "coverage", True, 1, "coverage")
+        outcome = engine.run_action(
+            directive,
+            action,
+            evidence=None,
+            remaining_budget=100,
+            execute=lambda _: "certificate-should-not-run",
+            verify=lambda _: True,
+        )
+        self.assertFalse(outcome.executed)
+        self.assertEqual(outcome.decision.decision, Decision.REJECT_RUN_CONTROL)
+        self.assertEqual(outcome.remaining_budget, 100)
+        self.assertTrue(self.log.verify())
+
+    def test_running_picard_allows_search_engine(self):
+        self.picard.command(PicardCommand.START, "begin run")
+        directive = self.picard.issue_directive("coverage", "normal search policy")
+
+        controller = AccountableAutonomyController(self.log)
+        engine = AccountableSearchEngine(self.log, controller, self.picard)
+        action = ActionCandidate("A2", "coverage", True, 1, "coverage")
+        outcome = engine.run_action(
+            directive,
+            action,
+            evidence=None,
+            remaining_budget=100,
+            execute=lambda _: "verified-certificate",
+            verify=lambda certificate: certificate == "verified-certificate",
+        )
+        self.assertTrue(outcome.executed)
+        self.assertTrue(outcome.verifier_accepted)
+        self.assertEqual(outcome.remaining_budget, 99)
         self.assertTrue(self.log.verify())
 
 
