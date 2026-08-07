@@ -11,6 +11,10 @@ from typing import Any, Iterable
 
 
 class EventType(StrEnum):
+    PICARD_COMMAND_RECEIVED = "PicardCommandReceived"
+    PICARD_COMMAND_REJECTED = "PicardCommandRejected"
+    PICARD_STATE_CHANGED = "PicardStateChanged"
+    PICARD_DIRECTIVE_ISSUED = "PicardDirectiveIssued"
     DIRECTIVE_RECEIVED = "DirectiveReceived"
     ACTION_PROPOSED = "ActionProposed"
     LEGALITY_CHECKED = "LegalityChecked"
