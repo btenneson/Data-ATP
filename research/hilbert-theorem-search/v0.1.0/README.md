@@ -7,9 +7,9 @@
 
 ## Release status
 
-Version 0.1.0 is the first executable reference release. It is a research prototype, not yet a Metamath/Lean production prover. The release contains a self-contained Python implementation, an independent toy verifier, a test suite, a manuscript source, and reproducible figure-generation code.
+Version 0.1.0 is the first executable reference release. It is a research prototype, not yet a Metamath/Lean production prover. The release contains a self-contained Python implementation, an independent toy verifier, a test suite, manuscript source, reproducible figure-generation code, and an explicit plan for a Metamath `sgrpcl` pilot.
 
-The test suite currently passes 12 tests covering Tenneson rational addressing, recursive tuple pairing, rational-cube round trips, arbitrary-dimensional Hilbert bijection and adjacency, frozen consequence epochs, budget interruption reports, certificate rejection, and finite closure discovery.
+The test suite passed 12 tests before upload, covering Tenneson rational addressing, recursive tuple pairing, rational-cube round trips, arbitrary-dimensional Hilbert bijection and adjacency, frozen consequence epochs, budget interruption reports, certificate rejection, and finite closure discovery.
 
 ## Core construction
 
@@ -59,18 +59,22 @@ Recursive pairing assigns one natural-number line to an `n`-tuple. A rational tr
 
 WFF/Godel line numbers are kept as the unique logical identities. Rational points are addresses and geometric coordinates; theoremhood is created only by verification.
 
-## Run the prototype
+## Reassemble and run the prototype
+
+The initial connector upload stores the 1,055-line implementation as six ordered UTF-8 parts. Reassemble it first; the script checks the exact SHA-256 digest before writing the executable file.
 
 ```bash
+python assemble_source.py
 python hilbert_theorem_search.py
 python -m unittest -v test_hilbert_theorem_search.py
 ```
 
-No third-party Python package is required for the reference implementation.
+No third-party Python package is required for the theorem-search reference implementation. `make_figures.py` additionally requires matplotlib.
 
 ## Contents
 
-- `hilbert_theorem_search.py` — executable reference engine.
+- `assemble_source.py` — reassembles and verifies `hilbert_theorem_search.py`.
+- `source_parts/` — six ordered source segments containing the full implementation.
 - `test_hilbert_theorem_search.py` — 12 regression tests.
 - `MANUSCRIPT_v0.1.0.md` — mathematical and implementation source.
 - `make_figures.py` — regenerates the four explanatory figures.
