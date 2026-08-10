@@ -1,0 +1,517 @@
+name: Ocean six-way L4000 reference benchmark
+
+on:
+  push:
+    paths:
+      - '.github/workflows/ocean-six-way-L4000.yml'
+  workflow_dispatch:
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Clone frozen ATP benchmark source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone https://github.com/btenneson/ATP.git "$RUNNER_TEMP/ATP_PIN"
+          git -C "$RUNNER_TEMP/ATP_PIN" checkout 3f7d4a345dbada286e5b16b46b787408189ecbef
+          echo "ATP_PIN=$RUNNER_TEMP/ATP_PIN" >> "$GITHUB_ENV"
+          git -C "$RUNNER_TEMP/ATP_PIN" rev-parse HEAD | tee benchmarks/ocean_reference/upstream_atp_commit.txt
+
+      - name: Generate, seal, and re-verify 20 L*=4000 oceans
+        shell: bash
+        run: |
+          set -euo pipefail
+          RAW="$RUNNER_TEMP/ocean_raw_L4000"
+          SEALED="$GITHUB_WORKSPACE/benchmarks/ocean_reference/sealed_L4000"
+          mkdir -p "$RAW" "$SEALED"
+          python "$RUNNER_TEMP/ATP_PIN/benchmarks/ocean/generate_ocean_tptp.py" \
+            --out "$RAW" --seeds 20 --lengths 4000
+          RAW="$RAW" SEALED="$SEALED" python - <<'PY'
+          import hashlib, json, os, re
+          from collections import defaultdict, deque
+          from pathlib import Path
+
+          raw=Path(os.environ["RAW"])
+          sealed=Path(os.environ["SEALED"])
+          manifest=json.loads((raw/"manifest.json").read_text())
+          manifest=sorted(manifest,key=lambda x:(x["Lstar"],x["seed"]))
+
+          start_re=re.compile(r"fof\(start,axiom,p\(n(\d+)\)\)\.")
+          edge_re=re.compile(r"fof\(e\d+,axiom,\(p\(n(\d+)\) => p\(n(\d+)\)\)\)\.")
+          goal_re=re.compile(r"fof\(goal,conjecture,p\(n(\d+)\)\)\.")
+
+          evaluation=[]
+          for idx,item in enumerate(manifest,1):
+              src=raw/item["file"]
+              source=target=None
+              edges=[]
+              for line in src.read_text().splitlines():
+                  line=line.strip()
+                  if not line or line.startswith("%"):
+                      continue
+                  m=start_re.fullmatch(line)
+                  if m:
+                      source=int(m.group(1)); continue
+                  m=edge_re.fullmatch(line)
+                  if m:
+                      edges.append((int(m.group(1)),int(m.group(2)))); continue
+                  m=goal_re.fullmatch(line)
+                  if m:
+                      target=int(m.group(1)); continue
+              if source is None or target is None or not edges:
+                  raise SystemExit(f"seal parse failure: {src}")
+
+              edges=sorted(
+                  edges,
+                  key=lambda uv: hashlib.sha256(
+                      f"ocean-six-v1|{uv[0]}|{uv[1]}".encode()
+                  ).digest()
+              )
+              opaque=f"problem_{idx:03d}.p"
+              out=sealed/opaque
+              with out.open("w",encoding="utf-8") as f:
+                  f.write(f"fof(start,axiom,p(n{source})).\n")
+                  for j,(u,v) in enumerate(edges):
+                      f.write(f"fof(a{j:06d},axiom,(p(n{u}) => p(n{v}))).\n")
+                  f.write(f"fof(goal,conjecture,p(n{target})).\n")
+
+              adj=defaultdict(list)
+              for u,v in edges:
+                  adj[u].append(v)
+              q=deque([(source,0)])
+              seen={source}
+              distance=None
+              while q:
+                  u,d=q.popleft()
+                  if u==target:
+                      distance=d; break
+                  for v in adj.get(u,()):
+                      if v not in seen:
+                          seen.add(v); q.append((v,d+1))
+              if distance != item["Lstar"]:
+                  raise SystemExit(
+                      f"sealed ground-truth failure {opaque}: {distance} != {item['Lstar']}"
+                  )
+              evaluation.append({
+                  "problem":opaque,
+                  "Lstar":item["Lstar"],
+                  "seed":item["seed"],
+                  "source_file":item["file"],
+                  "sealed_bfs_verified_Lstar":distance,
+                  "vertices":item["vertices"],
+                  "edges":item["edges"],
+              })
+
+          (sealed/"evaluation_manifest.json").write_text(
+              json.dumps(evaluation,indent=2),encoding="utf-8"
+          )
+          print(f"sealed {len(evaluation)} opaque problems; all BFS-reverified")
+          PY
+          rm -rf "$RAW"
+
+      - name: Smoke-test both DATA reference adapters on first sealed instance
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/data_smoke"
+          python benchmarks/ocean_reference/reference_solvers.py \
+            --solver data-atp \
+            --problem benchmarks/ocean_reference/sealed_L4000/problem_001.p \
+            --out "$RUNNER_TEMP/data_smoke/data_atp.json"
+          python benchmarks/ocean_reference/reference_solvers.py \
+            --solver data2-fast \
+            --problem benchmarks/ocean_reference/sealed_L4000/problem_001.p \
+            --out "$RUNNER_TEMP/data_smoke/data2_fast.json"
+          python benchmarks/ocean_reference/reference_solvers.py \
+            --solver data2-certify \
+            --problem benchmarks/ocean_reference/sealed_L4000/problem_001.p \
+            --out "$RUNNER_TEMP/data_smoke/data2_cert.json"
+
+      - name: Install common build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential git cmake jq gawk curl unzip
+
+      - name: Install SPASS
+        id: install_spass
+        continue-on-error: true
+        run: |
+          sudo apt-get install -y spass
+          SPASS -h 2>&1 | head -20 || true
+
+      - name: Build official E Prover 3.2.5 source release
+        id: install_e
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL 'https://wwwlehre.dhbw-stuttgart.de/~sschulz/WORK/E_DOWNLOAD/V_3.2/E.tgz' -o "$RUNNER_TEMP/E.tgz"
+          tar -xzf "$RUNNER_TEMP/E.tgz" -C "$RUNNER_TEMP"
+          cd "$RUNNER_TEMP/E"
+          ./configure
+          make rebuild
+          EPROVER_BIN="$RUNNER_TEMP/E/PROVER/eprover"
+          test -x "$EPROVER_BIN"
+          echo "EPROVER_BIN=$EPROVER_BIN" >> "$GITHUB_ENV"
+          "$EPROVER_BIN" --version
+          echo 'E 3.2.5 official source distribution' > "$GITHUB_WORKSPACE/benchmarks/ocean_reference/eprover_version.txt"
+
+      - name: Install Vampire 5.0.1
+        id: install_vampire
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/vampire"
+          python - <<'PY'
+          import json, os, pathlib, urllib.request
+          url='https://api.github.com/repos/vprover/vampire/releases/tags/v5.0.1'
+          req=urllib.request.Request(url,headers={
+              'Accept':'application/vnd.github+json',
+              'User-Agent':'ocean-six-way-L4000'
+          })
+          rel=json.load(urllib.request.urlopen(req))
+          assets=rel.get('assets',[])
+          def rank(a):
+              n=a['name'].lower()
+              linux='linux' in n
+              x86=any(x in n for x in ('x86_64','x86-64','amd64','x64'))
+              source=any(x in n for x in ('source','src'))
+              return (linux and x86 and not source, linux and not source, not source)
+          candidates=sorted(assets,key=rank,reverse=True)
+          if not candidates or not rank(candidates[0])[1]:
+              raise SystemExit('No suitable Linux Vampire release asset found')
+          a=candidates[0]
+          dest=pathlib.Path(os.environ['RUNNER_TEMP'])/'vampire'/a['name']
+          urllib.request.urlretrieve(a['browser_download_url'],dest)
+          print('Downloaded',a['name'])
+          PY
+          ASSET=$(find "$RUNNER_TEMP/vampire" -maxdepth 1 -type f | head -1)
+          case "$ASSET" in
+            *.tar.gz|*.tgz) tar -xzf "$ASSET" -C "$RUNNER_TEMP/vampire" ;;
+            *.tar.xz) tar -xJf "$ASSET" -C "$RUNNER_TEMP/vampire" ;;
+            *.zip) unzip -q "$ASSET" -d "$RUNNER_TEMP/vampire" ;;
+            *) chmod +x "$ASSET" ;;
+          esac
+          VAMPIRE_BIN=$(find "$RUNNER_TEMP/vampire" -type f \( -name 'vampire' -o -name 'vampire*' \) -not -name '*.tar*' -not -name '*.zip' | head -1)
+          if [ -z "$VAMPIRE_BIN" ]; then echo 'Vampire binary not found'; exit 1; fi
+          chmod +x "$VAMPIRE_BIN"
+          echo "VAMPIRE_BIN=$VAMPIRE_BIN" >> "$GITHUB_ENV"
+          "$VAMPIRE_BIN" --version || "$VAMPIRE_BIN" -h | head || true
+
+      - name: Install current LADR-2026 Prover9
+        id: install_prover9
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/AlgorithmicTruth/Prover9.git "$RUNNER_TEMP/Prover9"
+          git -C "$RUNNER_TEMP/Prover9" rev-parse HEAD | tee benchmarks/ocean_reference/prover9_commit.txt
+          make -C "$RUNNER_TEMP/Prover9" all
+          PROVER9_BIN="$RUNNER_TEMP/Prover9/bin/prover9"
+          test -x "$PROVER9_BIN"
+          echo "PROVER9_BIN=$PROVER9_BIN" >> "$GITHUB_ENV"
+          "$PROVER9_BIN" -h | head -20 || true
+
+      - name: Record environment and install outcomes
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p benchmarks/ocean_reference/results_L4000
+          {
+            echo "runner=$(uname -a)"
+            echo "python=$(python --version 2>&1)"
+            echo "Data_ATP_commit=$(git rev-parse HEAD)"
+            echo "ATP_pin=3f7d4a345dbada286e5b16b46b787408189ecbef"
+            echo "SPASS_install=${{ steps.install_spass.outcome }}"
+            echo "E_install=${{ steps.install_e.outcome }}"
+            echo "Vampire_install=${{ steps.install_vampire.outcome }}"
+            echo "Prover9_install=${{ steps.install_prover9.outcome }}"
+            echo "eprover=${EPROVER_BIN:-MISSING}"
+            echo "spass=$(command -v SPASS || echo MISSING)"
+            echo "vampire=${VAMPIRE_BIN:-MISSING}"
+            echo "prover9=${PROVER9_BIN:-MISSING}"
+          } > benchmarks/ocean_reference/results_L4000/environment.txt
+          cat benchmarks/ocean_reference/results_L4000/environment.txt
+
+      - name: Run six-way first-landfall trial and DATA 2.0.1 certification
+        id: trial
+        shell: bash
+        run: |
+          python - <<'PY'
+          import csv
+          import importlib.util
+          import json
+          import os
+          import statistics
+          import subprocess
+          import sys
+          import time
+          import traceback
+          from pathlib import Path
+
+          sealed=Path('benchmarks/ocean_reference/sealed_L4000')
+          out=Path('benchmarks/ocean_reference/results_L4000')
+          out.mkdir(parents=True,exist_ok=True)
+          cert_dir=out/'data_certificates'
+          cert_dir.mkdir(parents=True,exist_ok=True)
+          proof_dir=out/'professional_proofs'
+          proof_dir.mkdir(parents=True,exist_ok=True)
+          ref_script=Path('benchmarks/ocean_reference/reference_solvers.py')
+
+          eval_rows=json.loads((sealed/'evaluation_manifest.json').read_text())
+          meta={x['problem']:x for x in eval_rows}
+
+          base_path=Path(os.environ['ATP_PIN'])/'benchmarks/ocean/run_professional_atps.py'
+          spec=importlib.util.spec_from_file_location('professional_base',base_path)
+          base=importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(base)
+
+          first_rows=[]
+          cert_rows=[]
+          faulted=set()
+
+          first_solver_order=[
+              'Vampire','E','SPASS','Prover9',
+              'Data-ATP_Ocean_Reference_1.0',
+              'DATA_2.0.1_Ocean_Reference_1.0_fast',
+          ]
+
+          def write_csv(path,rows):
+              if not rows:
+                  return
+              fields=[]
+              for r in rows:
+                  for k in r:
+                      if k not in fields:
+                          fields.append(k)
+              with path.open('w',newline='',encoding='utf-8') as f:
+                  w=csv.DictWriter(f,fieldnames=fields)
+                  w.writeheader()
+                  for r in rows:
+                      w.writerow(r)
+
+          def save_partial():
+              write_csv(out/'rows_first_landfall.csv',first_rows)
+              write_csv(out/'rows_data2_certification.csv',cert_rows)
+              (out/'faulted_solvers.json').write_text(
+                  json.dumps(sorted(faulted),indent=2),encoding='utf-8'
+              )
+
+          def add_meta(r,p):
+              m=meta[p.name]
+              r['Lstar_evaluator_only']=m['Lstar']
+              r['seed_evaluator_only']=m['seed']
+              if r.get('proof_length') is None:
+                  r['optimal_first']=None
+              else:
+                  r['optimal_first']=bool(r['proof_length']==m['Lstar'])
+              return r
+
+          def run_reference(label,mode,p):
+              dest=cert_dir/label
+              dest.mkdir(parents=True,exist_ok=True)
+              json_path=dest/(p.stem+'.json')
+              cmd=[
+                  sys.executable,str(ref_script),
+                  '--solver',mode,'--problem',str(p),'--out',str(json_path)
+              ]
+              t0=time.perf_counter()
+              try:
+                  cp=subprocess.run(
+                      cmd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,
+                      text=True,timeout=60,stdin=subprocess.DEVNULL
+                  )
+                  wall=time.perf_counter()-t0
+              except subprocess.TimeoutExpired as e:
+                  wall=time.perf_counter()-t0
+                  text=e.stdout if isinstance(e.stdout,str) else ''
+                  (dest/(p.stem+'.log')).write_text(text,encoding='utf-8')
+                  return {
+                      'solver':label,'file':p.name,'status':'TIMEOUT',
+                      'wall_s':wall,'proof_length':None,'expansions':None,
+                      'scoring_edge_probes':None,'certificate_verified':False,
+                      'returncode':124,'command':' '.join(cmd),'error':''
+                  }
+
+              (dest/(p.stem+'.log')).write_text(cp.stdout,encoding='utf-8')
+              if cp.returncode != 0 or not json_path.exists():
+                  return {
+                      'solver':label,'file':p.name,'status':'FAULT',
+                      'wall_s':wall,'proof_length':None,'expansions':None,
+                      'scoring_edge_probes':None,'certificate_verified':False,
+                      'returncode':cp.returncode,'command':' '.join(cmd),
+                      'error':'reference process failed or emitted no JSON'
+                  }
+              try:
+                  data=json.loads(json_path.read_text())
+              except Exception as e:
+                  return {
+                      'solver':label,'file':p.name,'status':'FAULT',
+                      'wall_s':wall,'proof_length':None,'expansions':None,
+                      'scoring_edge_probes':None,'certificate_verified':False,
+                      'returncode':cp.returncode,'command':' '.join(cmd),
+                      'error':f'bad JSON: {e}'
+                  }
+
+              return {
+                  'solver':label,'file':p.name,'status':data.get('status','FAULT'),
+                  'wall_s':wall,'proof_length':data.get('proof_length'),
+                  'expansions':data.get('expansions'),
+                  'scoring_edge_probes':data.get('scoring_edge_probes'),
+                  'certificate_verified':data.get('certificate_verified',False),
+                  'returncode':cp.returncode,'command':' '.join(cmd),'error':''
+              }
+
+          problems=sorted(sealed.glob('problem_*.p'))
+          for p in problems:
+              for name in base.SOLVERS:
+                  try:
+                      r=base.run_one(name,p,proof_dir)
+                      r['proof_length']=None
+                      r['expansions']=None
+                      r['scoring_edge_probes']=None
+                      r['certificate_verified']=None
+                      r['error']=''
+                  except Exception as e:
+                      faulted.add(name)
+                      err=''.join(traceback.format_exception_only(type(e),e)).strip()
+                      r={
+                          'solver':name,'file':p.name,'status':'FAULT','wall_s':0.0,
+                          'returncode':-999,'native_inference_records':0,
+                          'time_limit_s':base.TIME_LIMIT,'command':'','error':err,
+                          'proof_length':None,'expansions':None,
+                          'scoring_edge_probes':None,'certificate_verified':None
+                      }
+                  if r['status']=='FAULT':
+                      faulted.add(name)
+                  first_rows.append(add_meta(r,p))
+                  print(name,p.name,r['status'],f"{r['wall_s']:.6f}s",flush=True)
+                  save_partial()
+
+              for label,mode in [
+                  ('Data-ATP_Ocean_Reference_1.0','data-atp'),
+                  ('DATA_2.0.1_Ocean_Reference_1.0_fast','data2-fast'),
+              ]:
+                  r=run_reference(label,mode,p)
+                  if r['status']=='FAULT':
+                      faulted.add(label)
+                  first_rows.append(add_meta(r,p))
+                  print(label,p.name,r['status'],f"{r['wall_s']:.6f}s",
+                        'L=',r.get('proof_length'),'E=',r.get('expansions'),flush=True)
+                  save_partial()
+
+              cr=run_reference(
+                  'DATA_2.0.1_Ocean_Reference_1.0_Horizon','data2-certify',p
+              )
+              if cr['status']=='FAULT':
+                  faulted.add('DATA_2.0.1_Ocean_Reference_1.0_Horizon')
+              cr=add_meta(cr,p)
+              cert_rows.append(cr)
+              print(cr['solver'],p.name,cr['status'],f"{cr['wall_s']:.6f}s",
+                    'L=',cr.get('proof_length'),'E=',cr.get('expansions'),flush=True)
+              save_partial()
+
+              if len(faulted)>2:
+                  print('ABORT: more than two distinct solver families faulted:',
+                        sorted(faulted),flush=True)
+                  raise SystemExit(3)
+
+          summary=[]
+          for solver in first_solver_order:
+              rr=[r for r in first_rows if r['solver']==solver]
+              ok=[r for r in rr if r['status']=='PROVED']
+              known_len=[r for r in ok if r.get('proof_length') is not None]
+              known_exp=[r for r in ok if r.get('expansions') is not None]
+              summary.append({
+                  'solver':solver,
+                  'proved':len(ok),
+                  'n':len(rr),
+                  'median_wall_s':statistics.median(
+                      [float(r['wall_s']) for r in ok]
+                  ) if ok else None,
+                  'median_proof_length':statistics.median(
+                      [int(r['proof_length']) for r in known_len]
+                  ) if known_len else None,
+                  'optimal_first_count':sum(
+                      r.get('optimal_first') is True for r in rr
+                  ) if known_len else None,
+                  'median_expansions':statistics.median(
+                      [int(r['expansions']) for r in known_exp]
+                  ) if known_exp else None,
+                  'median_scoring_edge_probes':statistics.median(
+                      [int(r['scoring_edge_probes']) for r in ok
+                       if r.get('scoring_edge_probes') is not None]
+                  ) if any(r.get('scoring_edge_probes') is not None for r in ok) else None,
+                  'timeouts':sum(r['status']=='TIMEOUT' for r in rr),
+                  'faults':sum(r['status']=='FAULT' for r in rr),
+                  'bounded_unknown':sum(r['status']=='BOUNDED_UNKNOWN' for r in rr),
+                  'unknown_output':sum(r['status']=='UNKNOWN_OUTPUT' for r in rr),
+                  'solver_time_limit_s':60,
+                  'professional_outer_capture_grace_s':5,
+              })
+
+          cert_ok=[r for r in cert_rows if r['status']=='CERTIFIED_MINIMUM']
+          cert_summary={
+              'solver':'DATA_2.0.1_Ocean_Reference_1.0_Horizon',
+              'certified_minimum':len(cert_ok),
+              'n':len(cert_rows),
+              'median_wall_s':statistics.median(
+                  [float(r['wall_s']) for r in cert_ok]
+              ) if cert_ok else None,
+              'median_proof_length':statistics.median(
+                  [int(r['proof_length']) for r in cert_ok]
+              ) if cert_ok else None,
+              'median_expansions':statistics.median(
+                  [int(r['expansions']) for r in cert_ok]
+              ) if cert_ok else None,
+              'externally_matches_Lstar':sum(
+                  r.get('optimal_first') is True for r in cert_rows
+              ),
+              'timeouts':sum(r['status']=='TIMEOUT' for r in cert_rows),
+              'faults':sum(r['status']=='FAULT' for r in cert_rows),
+          }
+
+          (out/'summary_first_landfall.json').write_text(
+              json.dumps(summary,indent=2),encoding='utf-8'
+          )
+          (out/'summary_data2_certification.json').write_text(
+              json.dumps(cert_summary,indent=2),encoding='utf-8'
+          )
+          save_partial()
+          print('FIRST LANDFALL SUMMARY')
+          print(json.dumps(summary,indent=2))
+          print('DATA 2.0.1 CERTIFICATION SUMMARY')
+          print(json.dumps(cert_summary,indent=2))
+          PY
+
+      - name: Show summaries
+        if: always()
+        run: |
+          cat benchmarks/ocean_reference/results_L4000/summary_first_landfall.json || true
+          cat benchmarks/ocean_reference/results_L4000/summary_data2_certification.json || true
+          cat benchmarks/ocean_reference/results_L4000/faulted_solvers.json || true
+
+      - name: Upload six-way L*=4000 artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ocean-six-way-reference-L4000
+          path: |
+            benchmarks/ocean_reference/README.md
+            benchmarks/ocean_reference/reference_solvers.py
+            benchmarks/ocean_reference/sealed_L4000/
+            benchmarks/ocean_reference/results_L4000/
+            benchmarks/ocean_reference/upstream_atp_commit.txt
+            benchmarks/ocean_reference/eprover_version.txt
+            benchmarks/ocean_reference/prover9_commit.txt
+          retention-days: 90
