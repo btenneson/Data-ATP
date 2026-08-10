@@ -64,9 +64,11 @@ The DATA adapters emit explicit node paths. A separate verifier checks that the 
 the start fact, ends at the conjecture, and that every consecutive pair is an input implication.
 Only verified paths count as `PROVED`.
 
-Every first-landfall solver receives the same 60-second per-instance wall-clock ceiling. The
-DATA 2.0.1 Horizon certification phase is recorded separately and is never folded into its
-first-landfall time.
+Every first-landfall solver uses the same nominal 60-second per-instance solver limit. The
+professional harness retains its existing 5-second outer capture grace so a solver that exits at
+the limit can still have its output collected; the DATA reference subprocesses are killed at 60
+seconds. The DATA 2.0.1 Horizon certification phase is recorded separately and is never folded
+into its first-landfall time.
 
 The workflow retains raw professional ATP outputs, DATA path certificates, environment/version
 information, the sealed problems, and summary tables as a 90-day GitHub Actions artifact.
