@@ -1,0 +1,72 @@
+{
+  "benchmark_id": "NOTALD_Massive_Tied_Ocean_v1_R01",
+  "run_authorized": true,
+  "authorization": "user explicitly authorized assistant recommendations and execution on 2026-08-11",
+  "freeze_status": "FROZEN_FOR_R01",
+  "instances_per_depth": 3,
+  "seeds": [1729, 7919, 104729],
+  "seed_policy": "same three hidden seed families at every depth; seeds never exposed to solver process",
+  "depths": [10,25,75,100,250,750,1000,2500,7500,10000,25000,75000,100000,250000,750000],
+  "input_polarity": {
+    "NOTALD": "negated conjecture C_L = not T_L",
+    "all_other_systems": "positive theorem T_L"
+  },
+  "software": {
+    "Depths-F": "Ocean calibration reference 1.0 (campaign code)",
+    "NOTALD": "Ocean implementation-validation reference 0.1 (campaign code; not full ALD)",
+    "Data-ATP": "Data-ATP_Ocean_Reference_1.0 at campaign repository revision",
+    "Data 2.0.1": "DATA_2.0.1_Ocean_Reference_1.0 at campaign repository revision",
+    "Vampire": "5.0.1",
+    "E": "3.2.5",
+    "iProver": "CASC-J13-2026 tag (resolved full commit recorded at run)",
+    "Prover9": "LADR-2026 commit b36df4c06d5794dd98e42335f191dd41d7abd2ab"
+  },
+  "hardware": {
+    "platform": "GitHub Actions private repository hosted runner ubuntu-24.04",
+    "concurrency": "serial solver evaluations within campaign job",
+    "note": "actual uname/cpu/memory captured into run artifact"
+  },
+  "resources": {
+    "wall_clock_seconds_per_evaluation": 30,
+    "outer_grace_seconds": 5,
+    "peak_memory_mib": 4096,
+    "global_expansion_accounting_rule": "reference systems count graph-edge probes/expansions to first verified certificate; professional ATP internal inference records are secondary and not equated with Ocean edge expansions",
+    "stopping_rule": "first accepted verified conclusive certificate; otherwise BOUNDED_UNKNOWN at hard wall-clock or memory limit"
+  },
+  "training": {
+    "artifact_bundle": ["all smaller-L sealed problem files", "independently verified certificates for those smaller-L siblings"],
+    "predecessor_policy": "all smaller-L siblings from all three seed families",
+    "held_out_target_excluded": true,
+    "answer_labels_excluded": true,
+    "shortest_routes_excluded_for_held_out": true,
+    "search_traces_excluded": true,
+    "shared_bank_events_excluded": true,
+    "reference_adapter_note": "benchmark-specific Data/NOTALD reference adapters may not consume the offered training bundle; consumption is reported explicitly"
+  },
+  "normalization": {
+    "double_negation_rule": "classical normalization of NOTALD R target not(not(T_L)) to T_L before Ocean search",
+    "charged_ocean_inferences": 0
+  },
+  "verification": {
+    "instance_shortest_path_check": "independent BFS on sealed graph outside solver process",
+    "reference_certificate_verifier": "independent path-edge checker",
+    "professional_certificate_policy": "accept professional theorem claim only when proof output exposes named input edge axioms whose induced subgraph independently contains a source-to-target path; otherwise AUDIT_FAILURE",
+    "native_ocean_proof_counting_convention": "hypotheses free; each edge along verified source-to-target certificate path counts as one native Ocean inference"
+  },
+  "blinding": {
+    "opaque_instance_ids": true,
+    "answer_key_outside_solver_tree": true,
+    "strip_horizon_comments": true,
+    "strip_expected_status": true,
+    "neutralize_symbols": true,
+    "shuffle_presentation": true,
+    "procedure_frozen": true
+  },
+  "scoring": {
+    "primary": "fraction of instances with correct certified settlement within frozen budget",
+    "secondary": ["charged work to first accepted certificate", "wall-clock", "peak memory", "verified certificate length", "L/Lstar", "NOTALD per-agent work", "shared-lemma production and cross-role reuse"],
+    "tie_rule": "higher primary solve fraction; then lower median charged work on jointly solved instances where comparable; then lower median wall-clock; remaining ties reported as ties",
+    "unknown_handling": "BOUNDED_UNKNOWN separate from logical failure and never treated as refutation/independence",
+    "invalid_certificate_handling": "AUDIT_FAILURE"
+  }
+}
