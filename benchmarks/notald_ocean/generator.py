@@ -44,9 +44,10 @@ class OceanInstance:
 def generate_ocean(L: int, seed: int, geometry: OceanGeometry) -> OceanInstance:
     """Generate an Ocean with a planted source-to-target backbone of exactly L edges.
 
-    Distractor branches are dead ends or longer re-entry detours; this construction is designed
-    not to create a route shorter than the backbone. An independent auditor MUST still verify
-    d(s,t) == L before any instance is accepted.
+    Distractor branches are dead ends or longer re-entry detours. Every optional re-entry
+    replaces a backbone segment of `branch_length` edges with a detour of
+    `branch_length + 1` edges, so that edge cannot shorten the planted route. An independent
+    auditor MUST still verify d(s,t) == L before any instance is accepted.
     """
     if L < 1:
         raise ValueError("L must be at least 1")
@@ -65,19 +66,17 @@ def generate_ocean(L: int, seed: int, geometry: OceanGeometry) -> OceanInstance:
                 geometry.distractor_max_length,
             )
             previous = origin
-            branch_nodes: list[str] = []
             for _step in range(branch_length):
                 node = f"d{counter}"
                 counter += 1
-                branch_nodes.append(node)
                 edges.append((previous, node))
                 previous = node
 
-            # Optional re-entry only if the detour is provably not shorter than the
-            # corresponding backbone segment. Re-enter at i + branch_length + 1 or earlier
-            # would risk a shortcut; therefore re-entry starts at i + branch_length + 2.
+            # The branch already used branch_length edges. One additional edge returning
+            # to b_(i + branch_length) makes this route one edge LONGER than the equivalent
+            # backbone segment. Therefore the re-entry edge cannot create a shortcut.
             if rng.random() < geometry.parallel_detour_probability:
-                reentry = i + branch_length + 2
+                reentry = i + branch_length
                 if reentry <= L:
                     edges.append((previous, backbone[reentry]))
 
