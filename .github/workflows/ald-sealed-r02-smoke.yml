@@ -1,0 +1,21 @@
+name: ALD Sealed R02 Smoke
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'benchmarks/ald_sealed_settlement_r02/**'
+      - '.github/workflows/ald-sealed-r02-smoke.yml'
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run sealed P/R/I smoke test
+        working-directory: benchmarks/ald_sealed_settlement_r02
+        run: python run_smoke.py
