@@ -1,0 +1,22 @@
+{
+  "benchmark": "ALD Sealed Conjecture-Settling R02",
+  "version": "0.1",
+  "resource_limits": {
+    "wall_seconds_per_instance": 30,
+    "memory_mib_per_process": 4096
+  },
+  "horizons": [10, 25, 75, 100, 250, 750, 1000, 2500, 7500, 10000, 25000, 75000, 100000, 250000, 750000],
+  "hidden_semantic_classes": ["PROVED", "REFUTED", "INDEPENDENT"],
+  "seed_families_per_class_per_horizon": 3,
+  "logical_nonsettlement": "UNKNOWN",
+  "certificate_rules": {
+    "PROVED": "named input-unit plus named input-implication path ending at C",
+    "REFUTED": "named input-unit plus named input-implication path ending at not-C",
+    "INDEPENDENT": "two complete models of T, one satisfying C and one satisfying not-C",
+    "UNKNOWN": "no logical claim; timeout, resource exhaustion, or voluntary abstention"
+  },
+  "training_tracks": {
+    "cold": "no sibling certificates supplied",
+    "trained": "identical lower-horizon sibling examples and independently verified certificates supplied to every learning system; test seeds remain held out"
+  }
+}
