@@ -1,0 +1,32 @@
+name: ALD Sealed R02 Full 135
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/ald-sealed-r02-full-135.yml'
+
+jobs:
+  full-135:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run full sealed 135-instance P/R/I campaign
+        working-directory: benchmarks/ald_sealed_settlement_r02
+        run: python run_full.py --out r02_full_135
+
+      - name: Upload full R02 audit package
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ald-sealed-r02-full-135
+          path: benchmarks/ald_sealed_settlement_r02/r02_full_135
+          if-no-files-found: warn
+          retention-days: 90
+          compression-level: 9
