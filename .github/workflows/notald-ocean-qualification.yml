@@ -1,0 +1,45 @@
+name: NOTALD Ocean Qualification
+
+on:
+  push:
+    branches:
+      - agent/notald-ocean-benchmark
+    paths:
+      - "benchmarks/notald_ocean/**"
+      - ".github/workflows/notald-ocean-qualification.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "benchmarks/notald_ocean/**"
+      - ".github/workflows/notald-ocean-qualification.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualification:
+    name: Non-scored implementation qualification
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run NOTALD Ocean qualification
+        run: |
+          python -m benchmarks.notald_ocean.qualification --out artifacts/notald_ocean_qualification.json
+
+      - name: Upload qualification record
+        uses: actions/upload-artifact@v4
+        with:
+          name: notald-ocean-qualification
+          path: artifacts/notald_ocean_qualification.json
+          retention-days: 30
