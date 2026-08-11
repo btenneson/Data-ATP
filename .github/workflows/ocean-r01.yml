@@ -1,0 +1,163 @@
+name: NOTALD Massive Tied-Ocean R01
+
+on:
+  push:
+    branches: [agent/notald-ocean-r01]
+    paths:
+      - '.github/workflows/ocean-r01.yml'
+      - 'benchmarks/notald_ocean_r01/**'
+  workflow_dispatch:
+
+jobs:
+  r01:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Record frozen source revisions
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/r01_meta"
+          git rev-parse HEAD | tee "$RUNNER_TEMP/r01_meta/data_atp_commit.txt"
+          cp benchmarks/notald_ocean_r01/config/freeze_manifest.json "$RUNNER_TEMP/r01_meta/freeze_manifest.json"
+
+      - name: Generate sealed 45-instance campaign and BFS-audit every instance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python benchmarks/notald_ocean_r01/scripts/generate_tied_ocean_v1.py --out "$RUNNER_TEMP/r01"
+
+      - name: Install common build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential git cmake jq gawk curl unzip time zstd ocaml ocaml-findlib libocamlgraph-ocaml-dev libzarith-ocaml-dev libyojson-ocaml-dev libgmp-dev
+
+      - name: Build E Prover 3.2.5
+        id: install_e
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL 'https://wwwlehre.dhbw-stuttgart.de/~sschulz/WORK/E_DOWNLOAD/V_3.2/E.tgz' -o "$RUNNER_TEMP/E.tgz"
+          tar -xzf "$RUNNER_TEMP/E.tgz" -C "$RUNNER_TEMP"
+          cd "$RUNNER_TEMP/E"
+          ./configure
+          make rebuild -j2
+          EPROVER_BIN="$RUNNER_TEMP/E/PROVER/eprover"
+          test -x "$EPROVER_BIN"
+          echo "EPROVER_BIN=$EPROVER_BIN" >> "$GITHUB_ENV"
+          "$EPROVER_BIN" --version | tee "$RUNNER_TEMP/r01_meta/e_version.txt"
+
+      - name: Install Vampire 5.0.1
+        id: install_vampire
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/vampire"
+          python - <<'PY'
+          import json,os,pathlib,urllib.request
+          url='https://api.github.com/repos/vprover/vampire/releases/tags/v5.0.1'
+          req=urllib.request.Request(url,headers={'Accept':'application/vnd.github+json','User-Agent':'notald-ocean-r01'})
+          rel=json.load(urllib.request.urlopen(req)); assets=rel.get('assets',[])
+          def rank(a):
+              n=a['name'].lower(); linux='linux' in n; x86=any(x in n for x in ('x86_64','x86-64','amd64','x64')); src=any(x in n for x in ('source','src'))
+              return (linux and x86 and not src,linux and not src,not src)
+          a=sorted(assets,key=rank,reverse=True)[0]
+          if not rank(a)[1]: raise SystemExit('no suitable Linux Vampire 5.0.1 asset')
+          dest=pathlib.Path(os.environ['RUNNER_TEMP'])/'vampire'/a['name']; urllib.request.urlretrieve(a['browser_download_url'],dest); print(dest)
+          PY
+          ASSET=$(find "$RUNNER_TEMP/vampire" -maxdepth 1 -type f | head -1)
+          case "$ASSET" in
+            *.tar.gz|*.tgz) tar -xzf "$ASSET" -C "$RUNNER_TEMP/vampire" ;;
+            *.tar.xz) tar -xJf "$ASSET" -C "$RUNNER_TEMP/vampire" ;;
+            *.zip) unzip -q "$ASSET" -d "$RUNNER_TEMP/vampire" ;;
+            *) chmod +x "$ASSET" ;;
+          esac
+          VAMPIRE_BIN=$(find "$RUNNER_TEMP/vampire" -type f \( -name 'vampire' -o -name 'vampire*' \) -not -name '*.tar*' -not -name '*.zip' | head -1)
+          test -n "$VAMPIRE_BIN"; chmod +x "$VAMPIRE_BIN"; echo "VAMPIRE_BIN=$VAMPIRE_BIN" >> "$GITHUB_ENV"
+          ("$VAMPIRE_BIN" --version || "$VAMPIRE_BIN" -h | head) 2>&1 | tee "$RUNNER_TEMP/r01_meta/vampire_version.txt"
+
+      - name: Build iProver CASC-J13-2026
+        id: install_iprover
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --recursive https://gitlab.com/korovin/iprover.git "$RUNNER_TEMP/iprover"
+          git -C "$RUNNER_TEMP/iprover" checkout CASC-J13-2026
+          git -C "$RUNNER_TEMP/iprover" submodule update --init --recursive
+          git -C "$RUNNER_TEMP/iprover" rev-parse HEAD | tee "$RUNNER_TEMP/r01_meta/iprover_commit.txt"
+          cd "$RUNNER_TEMP/iprover"
+          ./configure
+          make z3=false -j2
+          test -x ./iproveropt
+          echo "IPROVER_BIN=$RUNNER_TEMP/iprover/iproveropt" >> "$GITHUB_ENV"
+          ./iproveropt --help > "$RUNNER_TEMP/r01_meta/iprover_help.txt" 2>&1 || true
+
+      - name: Build Prover9 LADR-2026 pinned commit
+        id: install_prover9
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone https://github.com/AlgorithmicTruth/Prover9.git "$RUNNER_TEMP/Prover9"
+          git -C "$RUNNER_TEMP/Prover9" checkout b36df4c06d5794dd98e42335f191dd41d7abd2ab
+          git -C "$RUNNER_TEMP/Prover9" rev-parse HEAD | tee "$RUNNER_TEMP/r01_meta/prover9_commit.txt"
+          make -C "$RUNNER_TEMP/Prover9" all -j2
+          PROVER9_BIN="$RUNNER_TEMP/Prover9/bin/prover9"
+          test -x "$PROVER9_BIN"; echo "PROVER9_BIN=$PROVER9_BIN" >> "$GITHUB_ENV"
+          "$PROVER9_BIN" -h > "$RUNNER_TEMP/r01_meta/prover9_help.txt" 2>&1 || true
+
+      - name: Record environment and installation outcomes
+        if: always()
+        shell: bash
+        run: |
+          set -u
+          {
+            echo "runner=$(uname -a)"
+            echo "python=$(python --version 2>&1)"
+            echo "cpu_count=$(nproc)"
+            echo "memory=$(free -h | tr '\n' ';')"
+            echo "E_install=${{ steps.install_e.outcome }}"
+            echo "Vampire_install=${{ steps.install_vampire.outcome }}"
+            echo "iProver_install=${{ steps.install_iprover.outcome }}"
+            echo "Prover9_install=${{ steps.install_prover9.outcome }}"
+            echo "EPROVER_BIN=${EPROVER_BIN:-MISSING}"
+            echo "VAMPIRE_BIN=${VAMPIRE_BIN:-MISSING}"
+            echo "IPROVER_BIN=${IPROVER_BIN:-MISSING}"
+            echo "PROVER9_BIN=${PROVER9_BIN:-MISSING}"
+          } | tee "$RUNNER_TEMP/r01_meta/environment.txt"
+
+      - name: Run frozen R01 campaign
+        shell: bash
+        run: |
+          set -euo pipefail
+          python benchmarks/notald_ocean_r01/scripts/run_r01_campaign.py --root "$RUNNER_TEMP/r01" --out "$RUNNER_TEMP/r01/results"
+
+      - name: Build compact campaign artifact
+        if: always()
+        shell: bash
+        run: |
+          set -u
+          mkdir -p "$GITHUB_WORKSPACE/r01_artifact"
+          cp -r "$RUNNER_TEMP/r01_meta" "$GITHUB_WORKSPACE/r01_artifact/meta" || true
+          cp -r "$RUNNER_TEMP/r01/results" "$GITHUB_WORKSPACE/r01_artifact/results" || true
+          cp -r "$RUNNER_TEMP/r01/evaluator_only" "$GITHUB_WORKSPACE/r01_artifact/evaluator_only" || true
+          cp "$RUNNER_TEMP/r01/solver_inputs/sealed_manifest.json" "$GITHUB_WORKSPACE/r01_artifact/" || true
+          tar -I 'zstd -3' -cf "$GITHUB_WORKSPACE/r01_artifact/sealed_inputs.tar.zst" -C "$RUNNER_TEMP/r01" solver_inputs || true
+          find "$GITHUB_WORKSPACE/r01_artifact" -type f -print0 | sort -z | xargs -0 sha256sum > "$GITHUB_WORKSPACE/r01_artifact/SHA256SUMS.txt" || true
+          cat "$GITHUB_WORKSPACE/r01_artifact/results/summary.json" || true
+
+      - name: Upload R01 audit artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: notald-massive-tied-ocean-r01
+          path: r01_artifact/
+          retention-days: 90
