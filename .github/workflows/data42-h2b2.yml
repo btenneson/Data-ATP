@@ -1,0 +1,32 @@
+name: DATA 4.2 H2B2 Bundlewise Hodge Star
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/data42-h2b2.yml'
+
+jobs:
+  h2b2:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run DATA 4.2 H2B2 quotient-compass experiment
+        working-directory: experiments/hodge_h2b2_data42
+        run: python run_h2b2.py --out h2b2_run --max-expansions 5000 --compass-share 0.70
+
+      - name: Upload H2B2 audit package
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: data42-h2b2-audit
+          path: experiments/hodge_h2b2_data42/h2b2_run
+          if-no-files-found: warn
+          retention-days: 90
+          compression-level: 9
