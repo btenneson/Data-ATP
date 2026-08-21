@@ -27,6 +27,7 @@ DEVELOPMENT_LABELS = [
     "hpfracfield",
     "hpcoe1map",
     "hpcoe1fsupp",
+    "hpcoe1nzex",
 ]
 
 
@@ -146,7 +147,7 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit("required path missing:\n  " + "\n  ".join(missing))
 
     manifest = {
-        "schema_version": "0.4",
+        "schema_version": "0.5",
         "campaign": "HaloProof Advanced Settlement Campaign",
         "benchmark_model": "H = R(t), eventual-sign order near 0+, I={x: forall n>0 |x|<1/n}",
         "native_route": {
@@ -163,6 +164,8 @@ def main(argv: list[str] | None = None) -> int:
                 "coe1",
                 "coe1f",
                 "coe1sfi",
+                "deg1nn0cl",
+                "deg1ldg",
                 "<<<",
                 "sbth",
             ],
@@ -237,11 +240,10 @@ def main(argv: list[str] | None = None) -> int:
             return 7
 
         manifest["verified_development_labels"] = DEVELOPMENT_LABELS
-        manifest["gate"] = "COEFFICIENT_SUPPORT_VERIFIED_NEEDS_NONEMPTY_SUPPORT"
+        manifest["gate"] = "NONZERO_COEFFICIENT_VERIFIED_NEEDS_LEAST_INDEX"
         manifest["remaining_formal_obligations"] = [
-            "ES1c prove a nonzero polynomial has nonempty coefficient support",
-            "ES1d use well-ordering of NN0 to obtain a least nonzero exponent",
-            "ES1e define polynomial eventual sign from that coefficient",
+            "ES1d define the nonzero-index class and use well-ordering of NN0 to obtain its least element",
+            "ES1e define polynomial eventual sign from the coefficient at that least exponent",
             "ES2 prove polynomial eventual-sign multiplication compatibility",
             "ES3 lift sign to Frac(P) and prove representative invariance via fracerl",
             "ES4 prove strict total order and compatibility with field operations",
@@ -255,13 +257,13 @@ def main(argv: list[str] | None = None) -> int:
             "CA3 finish I ~<_ RR and I ~~ RR using sbth",
         ]
         manifest["next_action"] = (
-            "Prove nonempty support for nonzero polynomials, then obtain the least "
-            "nonzero coefficient index. Do not start the blind target search yet."
+            "Define the nonzero coefficient-index class and prove that its least element "
+            "exists for every nonzero polynomial. Do not start the blind target search yet."
         )
         write_manifest(run_root, manifest)
-        print(f"HaloProof coefficient-support stage verified: {run_root}")
+        print(f"HaloProof nonzero-coefficient stage verified: {run_root}")
         print("Verified: " + ", ".join(DEVELOPMENT_LABELS))
-        print("Gate: COEFFICIENT_SUPPORT_VERIFIED_NEEDS_NONEMPTY_SUPPORT")
+        print("Gate: NONZERO_COEFFICIENT_VERIFIED_NEEDS_LEAST_INDEX")
         return 3
 
     extension = Path(a.extension).expanduser().resolve()
