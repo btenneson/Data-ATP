@@ -74,7 +74,10 @@ def parser() -> argparse.ArgumentParser:
     ap.add_argument("--atp-root", required=True, help="Local checkout of btenneson/ATP")
     ap.add_argument("--setmm", required=True, help="Exact frozen set.mm snapshot")
     ap.add_argument("--run-root", default="runs/haloproof_advanced")
-    ap.add_argument("--extension", help="HaloProof rational-function .mm extension")
+    ap.add_argument(
+        "--extension",
+        help="HaloProof order/halo/target .mm extension built on native Poly1 and Frac machinery",
+    )
     ap.add_argument("--target-label", help="Exact target label in the extension")
     ap.add_argument(
         "--launch",
@@ -84,17 +87,26 @@ def parser() -> argparse.ArgumentParser:
     return ap
 
 
+# Inventory the exact native route first.  The benchmark does not require us
+# to reimplement a rational-function field if the frozen set.mm already has
+# Poly1/Frac and their supporting theorems.
 INVENTORY = [
-    ("sbth", ["search", "--prefix", "sbth"]),
-    ("dominance", ["search", "~<_", "--logical-only", "--limit", "80"]),
-    ("equinumerosity", ["search", "~~", "--logical-only", "--limit", "80"]),
-    ("real-cardinality", ["search", "RR", "~~", "--logical-only", "--limit", "80"]),
-    ("finite-functions", ["search", "Fin", "--logical-only", "--limit", "80"]),
-    ("maps", ["search", "^m", "--logical-only", "--limit", "80"]),
-    ("quotients", ["search", "/.", "--logical-only", "--limit", "80"]),
-    ("fields", ["search", "Fld", "--logical-only", "--limit", "80"]),
-    ("rings", ["search", "Ring", "--logical-only", "--limit", "80"]),
-    ("polynomials", ["search", "Poly", "--logical-only", "--limit", "120"]),
+    ("schroeder_bernstein", ["search", "--prefix", "sbth"]),
+    ("real_field", ["search", "--prefix", "refld"]),
+    ("field_to_domain", ["search", "--prefix", "fldidom"]),
+    ("poly1_domain", ["search", "--prefix", "ply1idom"]),
+    ("poly1", ["search", "Poly1", "--logical-only", "--limit", "120"]),
+    ("poly1_variable", ["search", "var1", "--logical-only", "--limit", "120"]),
+    ("poly1_coefficients", ["search", "coe1", "--logical-only", "--limit", "160"]),
+    ("fractions", ["search", "Frac", "--logical-only", "--limit", "160"]),
+    ("fraction_prefix", ["search", "--prefix", "frac"]),
+    ("infinitesimal", ["search", "<<<", "--logical-only", "--limit", "120"]),
+    ("ordered_fields", ["search", "oField", "--logical-only", "--limit", "120"]),
+    ("dominance", ["search", "~<_", "--logical-only", "--limit", "100"]),
+    ("equinumerosity", ["search", "~~", "--logical-only", "--limit", "100"]),
+    ("real_cardinality", ["search", "RR", "~~", "--logical-only", "--limit", "100"]),
+    ("finite_functions", ["search", "Fin", "--logical-only", "--limit", "100"]),
+    ("quotients", ["search", "/.", "--logical-only", "--limit", "100"]),
 ]
 
 
@@ -122,9 +134,25 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit("required path missing:\n  " + "\n  ".join(missing))
 
     manifest = {
-        "schema_version": "0.1",
+        "schema_version": "0.2",
         "campaign": "HaloProof Advanced Settlement Campaign",
         "benchmark_model": "H = R(t), eventual-sign order near 0+, I={x: forall n>0 |x|<1/n}",
+        "native_route": {
+            "real_field": "RRfld",
+            "polynomial_ring": "Poly1 ` RRfld",
+            "rational_function_field": "Frac ` ( Poly1 ` RRfld )",
+            "distinguished_variable": "var1 ` RRfld",
+            "reuse": [
+                "refld",
+                "fldidom",
+                "ply1idom",
+                "fracfld",
+                "fracf1",
+                "coe1",
+                "<<<",
+                "sbth",
+            ],
+        },
         "created_utc": now(),
         "host": {
             "platform": platform.platform(),
@@ -160,14 +188,25 @@ def main(argv: list[str] | None = None) -> int:
 
     extension = Path(a.extension).expanduser().resolve() if a.extension else None
     if extension is None:
-        manifest["gate"] = "NEEDS_RATIONAL_FUNCTION_EXTENSION"
+        manifest["gate"] = "NEEDS_HALOPROOF_ORDER_HALO_EXTENSION"
+        manifest["remaining_formal_obligations"] = [
+            "Instantiate P = Poly1(RRfld) and H = Frac(P) using native set.mm machinery.",
+            "Define eventual-sign positivity/order near 0+ algebraically from the least-degree nonzero polynomial coefficients.",
+            "Prove the sign/order is independent of the chosen fraction representative.",
+            "Identify the embedded variable t and prove it is positive and smaller than every positive real constant.",
+            "Define the exact two-sided halo I = {x in H : forall positive n, |x| < 1/n}.",
+            "Prove r |-> r*t injects RR into I.",
+            "Prove H ~~ RR using finite real coefficient data, then I ~<_ RR.",
+            "Apply Schroeder-Bernstein to obtain I ~~ RR.",
+        ]
         manifest["next_action"] = (
-            "Build the conservative H=R(t) HaloProof extension and a separately verified "
-            "reference proof before opening the blind target search."
+            "Build the conservative eventual-sign order/halo/target extension on top of native "
+            "Poly1(RRfld) and Frac(Poly1(RRfld)), then produce a separately verified reference "
+            "proof before opening the blind target search."
         )
         write_manifest(run_root, manifest)
         print(f"HaloProof development inventory complete: {run_root}")
-        print("Gate: NEEDS_RATIONAL_FUNCTION_EXTENSION")
+        print("Gate: NEEDS_HALOPROOF_ORDER_HALO_EXTENSION")
         return 3
 
     if not extension.exists():
