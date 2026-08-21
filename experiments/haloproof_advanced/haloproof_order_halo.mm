@@ -2,14 +2,14 @@ $(
   HaloProof order/halo development extension.
 
   This file is concatenated AFTER the exact frozen set.mm snapshot by the
-  HaloProof campaign.  It introduces no new axiom.  The first milestone is to
-  instantiate native set.mm machinery at the concrete benchmark field
+  HaloProof campaign.  It introduces no new axiom.  The concrete benchmark is
 
       P = Poly1(RRfld)
       H = Frac(P).
 
-  The foundation theorems below have been independently verified against the
-  frozen set(3).mm snapshot with SHA-256
+  The first six development theorems below have now been independently verified
+  by the local project verifier against the frozen set(3).mm snapshot with
+  SHA-256
 
       1016D7EDB0508ABDE0FE240BB5243E588C5067F8CB10EE6E1CC5733FC05ACDB5
 
@@ -18,9 +18,7 @@ $(
 
   Remaining theorem families, in order:
 
-  ES1a coefficient vector maps NN0 into the real coefficient carrier
-  ES1b coefficient vector has finite support
-  ES1c nonzero polynomial has nonempty coefficient support
+  ES1c nonzero polynomial has a nonzero coefficient / nonempty support
   ES1d least nonzero exponent exists
   ES1e define least-nonzero-coefficient sign for nonzero Poly1(RRfld)
   ES2  prove polynomial eventual-sign multiplication compatibility
@@ -74,8 +72,8 @@ hpfracfield $p |- ( Frac ` ( Poly1 ` RRfld ) ) e. Field $=
   ax-mp
 $.
 
-$( ES1a candidate: coefficients of a concrete HaloProof polynomial form a
-   map from NN0 into the base set of the real field. $)
+$( ES1a: coefficients of a concrete HaloProof polynomial form a map from NN0
+   into the base set of the real field. $)
 hpcoe1map $p |- ( F e. ( Base ` ( Poly1 ` RRfld ) ) ->
   ( coe1 ` F ) : NN0 --> ( Base ` RRfld ) ) $=
   cF cco1 cfv
@@ -91,8 +89,8 @@ hpcoe1map $p |- ( F e. ( Base ` ( Poly1 ` RRfld ) ) ->
   coe1f
 $.
 
-$( ES1b candidate: the coefficient vector of a concrete HaloProof polynomial
-   has finite support relative to the real-field zero. $)
+$( ES1b: the coefficient vector of a concrete HaloProof polynomial has finite
+   support relative to the real-field zero. $)
 hpcoe1fsupp $p |- ( F e. ( Base ` ( Poly1 ` RRfld ) ) ->
   ( coe1 ` F ) finSupp ( 0g ` RRfld ) ) $=
   cF cco1 cfv
@@ -107,3 +105,46 @@ hpcoe1fsupp $p |- ( F e. ( Base ` ( Poly1 ` RRfld ) ) ->
   crefld c0g cfv eqid
   coe1sfi
 $.
+
+$( ES1c candidate, generic form: a nonzero univariate polynomial over a ring
+   has at least one nonzero coefficient.  The witness is its native degree:
+   deg1nn0cl puts that degree in NN0 and deg1ldg says its coefficient is
+   nonzero.  This theorem is kept generic so later HaloProof lemmas can reuse
+   it without reproving the ring-level fact. $)
+${
+  $d n A $.  $d n B $.  $d n D $.  $d n F $.  $d n P $.  $d n R $.
+  $d n Y $.  $d n .0. $.
+  hpcoe1nzex.d $e |- D = ( deg1 ` R ) $.
+  hpcoe1nzex.p $e |- P = ( Poly1 ` R ) $.
+  hpcoe1nzex.z $e |- .0. = ( 0g ` P ) $.
+  hpcoe1nzex.b $e |- B = ( Base ` P ) $.
+  hpcoe1nzex.y $e |- Y = ( 0g ` R ) $.
+  hpcoe1nzex.a $e |- A = ( coe1 ` F ) $.
+  hpcoe1nzex $p |- ( ( R e. Ring /\ F e. B /\ F =/= .0. ) ->
+    E. n e. NN0 ( A ` n ) =/= Y ) $=
+  cR crg wcel cF cB.wceq wcel cF c.0 wne w3a
+  cF cD cfv cn0 wcel
+  cF cD cfv cA.wceq cfv cY wne wa
+  vn cv cA.wceq cfv cY wne
+  vn cn0 wrex
+  cR crg wcel cF cB.wceq wcel cF c.0 wne w3a
+  cF cD cfv cn0 wcel
+  cF cD cfv cA.wceq cfv cY wne
+  cB.wceq cD cP cR cF c.0
+  hpcoe1nzex.d hpcoe1nzex.p hpcoe1nzex.z hpcoe1nzex.b
+  deg1nn0cl
+  cA.wceq cB.wceq cD cP cR cF cY c.0
+  hpcoe1nzex.d hpcoe1nzex.p hpcoe1nzex.z hpcoe1nzex.b
+  hpcoe1nzex.y hpcoe1nzex.a deg1ldg
+  jca
+  vn cv cA.wceq cfv cY wne
+  cF cD cfv cA.wceq cfv cY wne
+  vn cF cD cfv cn0
+  vn cv cF cD cfv wceq
+  vn cv cA.wceq cfv cF cD cfv cA.wceq cfv cY
+  vn cv cF cD cfv wceq
+  vn cv cF cD cfv cA.wceq
+  vn cv cF cD cfv wceq
+  id fveq2d neeq1d rspcev syl
+$.
+$}
