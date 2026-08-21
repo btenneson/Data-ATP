@@ -24,6 +24,28 @@ The known reference route is:
 4. `I ~<_ R` by composition;
 5. `I ~~ R` by Schroeder-Bernstein.
 
+## Native set.mm route
+
+The frozen `set.mm` already contains most of the algebraic infrastructure needed for the benchmark. The preferred concrete construction is
+
+`P = Poly1(RRfld)`
+
+and
+
+`H = Frac(P) = Frac(Poly1(RRfld))`.
+
+The campaign therefore reuses native machinery including `refld`, `fldidom`, `ply1idom`, `fracfld`, `fracf1`, `coe1`, the generic infinitesimal relation `<<<`, and `sbth` rather than reimplementing a rational-function field from scratch.
+
+The principal new formal work is now narrower:
+
+1. define eventual-sign positivity/order near `0+`, preferably algebraically using the least-degree nonzero polynomial coefficients;
+2. prove that this sign/order is independent of the chosen fraction representative;
+3. identify the embedded polynomial variable as `t` and prove that it is a positive infinitesimal;
+4. define the exact **two-sided** halo required by the benchmark (the native `<<<` relation may help but must not silently replace the benchmark definition);
+5. prove `r |-> r t` is an injection from `RR` into the halo;
+6. prove `H ~~ RR` from finite real coefficient data and derive the reverse cardinal inequality for the halo;
+7. finish with `sbth`.
+
 ## Why the campaign begins with a development gate
 
 HaloProof requires a reference proof before the blind benchmark is opened. That is not a hint to the blind ATP. It is a protocol check that the exact frozen target is actually derivable in the exact frozen environment.
@@ -33,7 +55,7 @@ At present, this directory therefore begins with an **environment/reference-proo
 The gate requires:
 
 - an exact frozen `set.mm` plus SHA-256;
-- a conservative rational-function HaloProof extension plus SHA-256;
+- a conservative HaloProof eventual-sign order/halo/target extension plus SHA-256;
 - a target label whose parse tree is valid;
 - a separately verified reference certificate;
 - independent verifier agreement;
@@ -64,30 +86,28 @@ From a PowerShell prompt in a checkout of this branch:
 
 ```powershell
 cd .\experiments\haloproof_advanced
-.\run_haloproof.ps1 -ATPRoot "C:\path\to\ATP" -SetMM "C:\path\to\frozen\set.mm"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\run_haloproof.ps1 `
+  -ATPRoot "C:\path\to\ATP" `
+  -SetMM "C:\path\to\frozen\set.mm"
 ```
 
-If `Data-ATP` and `ATP` are sibling directories and `ATP\set.mm` exists, the shorter command is enough:
+The `ExecutionPolicy Bypass` applies only to that child PowerShell invocation; it does not permanently change the machine policy.
 
-```powershell
-.\run_haloproof.ps1
-```
+The first run verifies the local verifier, hashes the frozen inputs, and inventories the native `Poly1`, `Frac`, coefficient, ordered-field, infinitesimal, cardinality, and Schroeder-Bernstein machinery in the exact `set.mm` snapshot. It writes a timestamped run directory and `HALOPROOF_MANIFEST.json`.
 
-The first run verifies the local verifier, hashes the frozen inputs, and inventories the relevant cardinality, quotient, field, ring, polynomial, finite-function, and map machinery in the exact `set.mm` snapshot. It writes a timestamped run directory and `HALOPROOF_MANIFEST.json`.
+Until the smaller HaloProof order/halo extension is supplied, the expected gate is:
 
-Until a rational-function extension is supplied, the expected gate is:
-
-`NEEDS_RATIONAL_FUNCTION_EXTENSION`
+`NEEDS_HALOPROOF_ORDER_HALO_EXTENSION`
 
 That is a development status, **not** a mathematical outcome.
 
 When a candidate extension exists, run:
 
 ```powershell
-.\run_haloproof.ps1 `
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\run_haloproof.ps1 `
   -ATPRoot "C:\path\to\ATP" `
   -SetMM "C:\path\to\frozen\set.mm" `
-  -Extension "C:\path\to\haloproof_extension.mm" `
+  -Extension "C:\path\to\haloproof_order_halo.mm" `
   -TargetLabel "EXACT_TARGET_LABEL"
 ```
 
