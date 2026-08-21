@@ -20,6 +20,14 @@ from datetime import datetime, timezone
 from typing import Sequence
 
 
+FOUNDATION_LABELS = [
+    "hprefld",
+    "hpridom",
+    "hppolyidom",
+    "hpfracfield",
+]
+
+
 def sha256(path: Path) -> str:
     h = hashlib.sha256()
     with path.open("rb") as f:
@@ -76,9 +84,12 @@ def parser() -> argparse.ArgumentParser:
     ap.add_argument("--run-root", default="runs/haloproof_advanced")
     ap.add_argument(
         "--extension",
-        help="HaloProof order/halo/target .mm extension built on native Poly1 and Frac machinery",
+        help=(
+            "Complete HaloProof order/halo/target .mm extension. If omitted, "
+            "the bundled development extension is verified instead."
+        ),
     )
-    ap.add_argument("--target-label", help="Exact target label in the extension")
+    ap.add_argument("--target-label", help="Exact target label in a complete extension")
     ap.add_argument(
         "--launch",
         action="store_true",
@@ -118,6 +129,7 @@ def write_manifest(run_root: Path, manifest: dict) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     a = parser().parse_args(argv)
+    script_dir = Path(__file__).resolve().parent
     atp = Path(a.atp_root).expanduser().resolve()
     setmm = Path(a.setmm).expanduser().resolve()
     run_root = Path(a.run_root).expanduser().resolve()
@@ -128,13 +140,14 @@ def main(argv: list[str] | None = None) -> int:
 
     metamath = atp / "metamath.py"
     grammar = atp / "setmm_grammar.py"
-    required = [atp, setmm, metamath, grammar]
+    bundled_development_extension = script_dir / "haloproof_order_halo.mm"
+    required = [atp, setmm, metamath, grammar, bundled_development_extension]
     missing = [str(p) for p in required if not p.exists()]
     if missing:
         raise SystemExit("required path missing:\n  " + "\n  ".join(missing))
 
     manifest = {
-        "schema_version": "0.2",
+        "schema_version": "0.3",
         "campaign": "HaloProof Advanced Settlement Campaign",
         "benchmark_model": "H = R(t), eventual-sign order near 0+, I={x: forall n>0 |x|<1/n}",
         "native_route": {
@@ -186,29 +199,72 @@ def main(argv: list[str] | None = None) -> int:
         result = run(cmd, atp, logs / f"inventory_{name}.txt")
         manifest["steps"].append({"name": f"inventory_{name}", **result})
 
-    extension = Path(a.extension).expanduser().resolve() if a.extension else None
-    if extension is None:
-        manifest["gate"] = "NEEDS_HALOPROOF_ORDER_HALO_EXTENSION"
+    # With no complete extension supplied, verify the bundled development
+    # extension.  This is now more than an inventory gate: it establishes the
+    # concrete foundation H = Frac(Poly1(RRfld)) with actual verified theorems.
+    if not a.extension:
+        environment = artifacts / "haloproof_development_environment.mm"
+        concat_files(setmm, bundled_development_extension, environment)
+        manifest["inputs"]["development_extension"] = {
+            "path": str(bundled_development_extension),
+            "sha256": sha256(bundled_development_extension),
+        }
+        manifest["inputs"]["development_environment"] = {
+            "path": str(environment),
+            "sha256": sha256(environment),
+        }
+
+        foundation_verify = run(
+            [
+                sys.executable,
+                str(metamath),
+                "verify",
+                str(environment),
+                "--only",
+                *FOUNDATION_LABELS,
+                "--progress",
+                "0",
+            ],
+            atp,
+            logs / "20_foundation_verify.txt",
+        )
+        manifest["steps"].append(
+            {"name": "verify_haloproof_foundation", **foundation_verify}
+        )
+        if foundation_verify["returncode"] != 0:
+            manifest["gate"] = "PROTOCOL_FAILURE_FOUNDATION_VERIFY"
+            write_manifest(run_root, manifest)
+            print(f"HaloProof foundation verification FAILED: {run_root}")
+            print("Gate: PROTOCOL_FAILURE_FOUNDATION_VERIFY")
+            return 7
+
+        manifest["verified_foundation_labels"] = FOUNDATION_LABELS
+        manifest["gate"] = "FOUNDATION_VERIFIED_NEEDS_EVENTUAL_SIGN_ORDER"
         manifest["remaining_formal_obligations"] = [
-            "Instantiate P = Poly1(RRfld) and H = Frac(P) using native set.mm machinery.",
-            "Define eventual-sign positivity/order near 0+ algebraically from the least-degree nonzero polynomial coefficients.",
-            "Prove the sign/order is independent of the chosen fraction representative.",
-            "Identify the embedded variable t and prove it is positive and smaller than every positive real constant.",
-            "Define the exact two-sided halo I = {x in H : forall positive n, |x| < 1/n}.",
-            "Prove r |-> r*t injects RR into I.",
-            "Prove H ~~ RR using finite real coefficient data, then I ~<_ RR.",
-            "Apply Schroeder-Bernstein to obtain I ~~ RR.",
+            "ES1 define least-nonzero-coefficient sign for nonzero Poly1(RRfld)",
+            "ES2 prove polynomial eventual-sign multiplication compatibility",
+            "ES3 lift sign to Frac(P) and prove representative invariance via fracerl",
+            "ES4 prove strict total order and compatibility with field operations",
+            "ES5 package H with that order as an ordered field",
+            "HA1 identify the embedded variable t and prove 0 < t",
+            "HA2 prove t < r for every positive real constant r",
+            "HA3 prove t is a nonzero infinitesimal",
+            "HA4 define the exact two-sided halo I",
+            "CA1 prove r |-> r*t is one-to-one from RR into I",
+            "CA2 prove H ~~ RR from finite real coefficient data",
+            "CA3 finish I ~<_ RR and I ~~ RR using sbth",
         ]
         manifest["next_action"] = (
-            "Build the conservative eventual-sign order/halo/target extension on top of native "
-            "Poly1(RRfld) and Frac(Poly1(RRfld)), then produce a separately verified reference "
-            "proof before opening the blind target search."
+            "Extend the verified development file with the algebraic eventual-sign order. "
+            "Do not start the blind target search yet."
         )
         write_manifest(run_root, manifest)
-        print(f"HaloProof development inventory complete: {run_root}")
-        print("Gate: NEEDS_HALOPROOF_ORDER_HALO_EXTENSION")
+        print(f"HaloProof foundation verified: {run_root}")
+        print("Verified: " + ", ".join(FOUNDATION_LABELS))
+        print("Gate: FOUNDATION_VERIFIED_NEEDS_EVENTUAL_SIGN_ORDER")
         return 3
 
+    extension = Path(a.extension).expanduser().resolve()
     if not extension.exists():
         raise SystemExit(f"extension not found: {extension}")
     if not a.target_label:
@@ -229,7 +285,7 @@ def main(argv: list[str] | None = None) -> int:
     roundtrip = run(
         [sys.executable, str(grammar), "roundtrip", str(environment)],
         atp,
-        logs / "10_roundtrip.txt",
+        logs / "30_roundtrip.txt",
     )
     manifest["steps"].append({"name": "grammar_roundtrip", **roundtrip})
     if roundtrip["returncode"] != 0:
@@ -240,7 +296,7 @@ def main(argv: list[str] | None = None) -> int:
     tree = run(
         [sys.executable, str(grammar), "tree", str(environment), a.target_label],
         atp,
-        logs / "11_target_tree.txt",
+        logs / "31_target_tree.txt",
     )
     manifest["steps"].append({"name": "target_parse_tree", **tree})
     if tree["returncode"] != 0:
@@ -251,7 +307,7 @@ def main(argv: list[str] | None = None) -> int:
     show = run(
         [sys.executable, str(metamath), "show", str(environment), a.target_label],
         atp,
-        logs / "12_target_show.txt",
+        logs / "32_target_show.txt",
     )
     manifest["steps"].append({"name": "target_identity", **show})
     if show["returncode"] != 0:
