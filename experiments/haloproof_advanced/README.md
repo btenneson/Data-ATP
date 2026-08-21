@@ -34,33 +34,38 @@ and
 
 `H = Frac(P) = Frac(Poly1(RRfld))`.
 
-The campaign therefore reuses native machinery including `refld`, `fldidom`, `ply1idom`, `fracfld`, `fracf1`, `coe1`, the generic infinitesimal relation `<<<`, and `sbth` rather than reimplementing a rational-function field from scratch.
+The campaign therefore reuses native machinery including `refld`, `fldidom`, `ply1idom`, `fracfld`, `fracf1`, `coe1`, `coe1f`, `coe1sfi`, the generic infinitesimal relation `<<<`, and `sbth` rather than reimplementing a rational-function field from scratch.
 
-## Verified development foundation
+## Verified and candidate development lemmas
 
-The bundled file `haloproof_order_halo.mm` now contains the first four concrete HaloProof theorems, with no new axiom:
+The bundled file `haloproof_order_halo.mm` contains the following concrete HaloProof development lemmas, with no new axiom:
 
 - `hprefld`: `RRfld e. Field`;
 - `hpridom`: `RRfld e. IDomn`;
 - `hppolyidom`: `( Poly1 ` RRfld ) e. IDomn`;
-- `hpfracfield`: `( Frac ` ( Poly1 ` RRfld ) ) e. Field`.
+- `hpfracfield`: `( Frac ` ( Poly1 ` RRfld ) ) e. Field`;
+- `hpcoe1map`: coefficients of a concrete polynomial map `NN0` into the real-field carrier;
+- `hpcoe1fsupp`: the coefficient vector has finite support relative to real zero.
 
-These proofs have been stack-checked against the frozen `set(3).mm` snapshot with SHA-256
+The first four have already been independently accepted by the local project verifier on the frozen `set.mm`. The last two are the current verifier candidates. They are promoted to verified status only if the next local campaign run accepts them on the same frozen snapshot.
+
+The frozen snapshot used in the campaign has SHA-256
 
 `1016D7EDB0508ABDE0FE240BB5243E588C5067F8CB10EE6E1CC5733FC05ACDB5`.
 
-The local campaign runner independently re-verifies those four labels with the project `metamath.py` before advancing the gate. They are foundation lemmas only; they do **not** yet settle the HaloProof target.
+These are development lemmas only; they do **not** yet settle the HaloProof target.
 
-The principal new formal work is now narrower:
+The next mathematical steps are deliberately small:
 
-1. define eventual-sign positivity/order near `0+`, preferably algebraically using the least-degree nonzero polynomial coefficients;
-2. prove that this sign/order is independent of the chosen fraction representative, using the native fraction equivalence/cross-multiplication machinery such as `fracerl`;
-3. prove the relation is a strict total order compatible with the field operations and package the benchmark structure as an ordered field;
-4. identify the embedded polynomial variable as `t` and prove that it is a positive infinitesimal;
-5. define the exact **two-sided** halo required by the benchmark (the native `<<<` relation may help but must not silently replace the benchmark definition);
-6. prove `r |-> r t` is an injection from `RR` into the halo;
-7. prove `H ~~ RR` from finite real coefficient data and derive the reverse cardinal inequality for the halo;
-8. finish with `sbth`.
+1. prove that a nonzero polynomial has nonempty coefficient support;
+2. use well-ordering of `NN0` to obtain a least nonzero exponent;
+3. define the polynomial sign near `0+` as the sign of the coefficient at that least exponent;
+4. prove multiplication compatibility;
+5. lift the sign to `Frac(P)` and prove independence of representatives using `fracerl`;
+6. prove the resulting relation is a strict total order compatible with the field operations;
+7. identify the embedded polynomial variable as `t` and prove that it is a positive infinitesimal;
+8. define the exact two-sided halo and prove the two cardinal bounds;
+9. finish with `sbth`.
 
 ## Why the campaign has development gates
 
@@ -113,13 +118,15 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\run_haloproof.ps1 `
 
 The `ExecutionPolicy Bypass` applies only to that child PowerShell invocation; it does not permanently change the machine policy.
 
-The runner verifies the local verifier, hashes the frozen inputs, inventories the native `Poly1`, `Frac`, coefficient, ordered-field, infinitesimal, cardinality, and Schroeder-Bernstein machinery, concatenates the bundled development extension, and verifies exactly the four foundation labels above.
+The runner verifies the local verifier, hashes the frozen inputs, inventories the native machinery, concatenates the bundled development extension, and asks the project Metamath verifier to check all six labels listed above.
 
-If that succeeds, the expected gate is now:
+If that succeeds, the expected gate is:
 
-`FOUNDATION_VERIFIED_NEEDS_EVENTUAL_SIGN_ORDER`
+`COEFFICIENT_SUPPORT_VERIFIED_NEEDS_NONEMPTY_SUPPORT`
 
-That means the concrete field foundation is formally verified and the next missing theorem family is the algebraic eventual-sign order. It is a development status, **not** a final mathematical outcome.
+That means the field foundation and the finite-support prerequisite for the least-nonzero-coefficient construction are formally verified. The next missing result is that a **nonzero** polynomial has **nonempty** support. It is a development status, not a final mathematical outcome.
+
+If either candidate proof is malformed, the run instead stops at `PROTOCOL_FAILURE_DEVELOPMENT_VERIFY`; that is exactly why this gate exists. A failed candidate is corrected rather than counted as evidence about the HaloProof theorem.
 
 A complete order/halo/target extension will later be supplied with `-Extension` and `-TargetLabel`; that route performs grammar/target checks and stops at `REFERENCE_PROOF_REQUIRED` before any blind run.
 
