@@ -20,11 +20,13 @@ from datetime import datetime, timezone
 from typing import Sequence
 
 
-FOUNDATION_LABELS = [
+DEVELOPMENT_LABELS = [
     "hprefld",
     "hpridom",
     "hppolyidom",
     "hpfracfield",
+    "hpcoe1map",
+    "hpcoe1fsupp",
 ]
 
 
@@ -98,9 +100,6 @@ def parser() -> argparse.ArgumentParser:
     return ap
 
 
-# Inventory the exact native route first.  The benchmark does not require us
-# to reimplement a rational-function field if the frozen set.mm already has
-# Poly1/Frac and their supporting theorems.
 INVENTORY = [
     ("schroeder_bernstein", ["search", "--prefix", "sbth"]),
     ("real_field", ["search", "--prefix", "refld"]),
@@ -147,7 +146,7 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit("required path missing:\n  " + "\n  ".join(missing))
 
     manifest = {
-        "schema_version": "0.3",
+        "schema_version": "0.4",
         "campaign": "HaloProof Advanced Settlement Campaign",
         "benchmark_model": "H = R(t), eventual-sign order near 0+, I={x: forall n>0 |x|<1/n}",
         "native_route": {
@@ -162,6 +161,8 @@ def main(argv: list[str] | None = None) -> int:
                 "fracfld",
                 "fracf1",
                 "coe1",
+                "coe1f",
+                "coe1sfi",
                 "<<<",
                 "sbth",
             ],
@@ -199,9 +200,6 @@ def main(argv: list[str] | None = None) -> int:
         result = run(cmd, atp, logs / f"inventory_{name}.txt")
         manifest["steps"].append({"name": f"inventory_{name}", **result})
 
-    # With no complete extension supplied, verify the bundled development
-    # extension.  This is now more than an inventory gate: it establishes the
-    # concrete foundation H = Frac(Poly1(RRfld)) with actual verified theorems.
     if not a.extension:
         environment = artifacts / "haloproof_development_environment.mm"
         concat_files(setmm, bundled_development_extension, environment)
@@ -214,34 +212,36 @@ def main(argv: list[str] | None = None) -> int:
             "sha256": sha256(environment),
         }
 
-        foundation_verify = run(
+        development_verify = run(
             [
                 sys.executable,
                 str(metamath),
                 "verify",
                 str(environment),
                 "--only",
-                *FOUNDATION_LABELS,
+                *DEVELOPMENT_LABELS,
                 "--progress",
                 "0",
             ],
             atp,
-            logs / "20_foundation_verify.txt",
+            logs / "20_development_verify.txt",
         )
         manifest["steps"].append(
-            {"name": "verify_haloproof_foundation", **foundation_verify}
+            {"name": "verify_haloproof_development", **development_verify}
         )
-        if foundation_verify["returncode"] != 0:
-            manifest["gate"] = "PROTOCOL_FAILURE_FOUNDATION_VERIFY"
+        if development_verify["returncode"] != 0:
+            manifest["gate"] = "PROTOCOL_FAILURE_DEVELOPMENT_VERIFY"
             write_manifest(run_root, manifest)
-            print(f"HaloProof foundation verification FAILED: {run_root}")
-            print("Gate: PROTOCOL_FAILURE_FOUNDATION_VERIFY")
+            print(f"HaloProof development verification FAILED: {run_root}")
+            print("Gate: PROTOCOL_FAILURE_DEVELOPMENT_VERIFY")
             return 7
 
-        manifest["verified_foundation_labels"] = FOUNDATION_LABELS
-        manifest["gate"] = "FOUNDATION_VERIFIED_NEEDS_EVENTUAL_SIGN_ORDER"
+        manifest["verified_development_labels"] = DEVELOPMENT_LABELS
+        manifest["gate"] = "COEFFICIENT_SUPPORT_VERIFIED_NEEDS_NONEMPTY_SUPPORT"
         manifest["remaining_formal_obligations"] = [
-            "ES1 define least-nonzero-coefficient sign for nonzero Poly1(RRfld)",
+            "ES1c prove a nonzero polynomial has nonempty coefficient support",
+            "ES1d use well-ordering of NN0 to obtain a least nonzero exponent",
+            "ES1e define polynomial eventual sign from that coefficient",
             "ES2 prove polynomial eventual-sign multiplication compatibility",
             "ES3 lift sign to Frac(P) and prove representative invariance via fracerl",
             "ES4 prove strict total order and compatibility with field operations",
@@ -255,13 +255,13 @@ def main(argv: list[str] | None = None) -> int:
             "CA3 finish I ~<_ RR and I ~~ RR using sbth",
         ]
         manifest["next_action"] = (
-            "Extend the verified development file with the algebraic eventual-sign order. "
-            "Do not start the blind target search yet."
+            "Prove nonempty support for nonzero polynomials, then obtain the least "
+            "nonzero coefficient index. Do not start the blind target search yet."
         )
         write_manifest(run_root, manifest)
-        print(f"HaloProof foundation verified: {run_root}")
-        print("Verified: " + ", ".join(FOUNDATION_LABELS))
-        print("Gate: FOUNDATION_VERIFIED_NEEDS_EVENTUAL_SIGN_ORDER")
+        print(f"HaloProof coefficient-support stage verified: {run_root}")
+        print("Verified: " + ", ".join(DEVELOPMENT_LABELS))
+        print("Gate: COEFFICIENT_SUPPORT_VERIFIED_NEEDS_NONEMPTY_SUPPORT")
         return 3
 
     extension = Path(a.extension).expanduser().resolve()
