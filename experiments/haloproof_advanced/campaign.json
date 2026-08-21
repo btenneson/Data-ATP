@@ -1,5 +1,5 @@
 {
-  "schema_version": "0.2",
+  "schema_version": "0.3",
   "campaign": "HaloProof Advanced Settlement Campaign",
   "benchmark_model": {
     "field": "H = R(t)",
@@ -40,9 +40,20 @@
       "nontrivial admissible index excluding target leakage and direct target restatements"
     ]
   },
+  "verified_foundation": {
+    "status": "stack-checked against frozen set(3).mm; local campaign re-verification required",
+    "frozen_setmm_sha256": "1016D7EDB0508ABDE0FE240BB5243E588C5067F8CB10EE6E1CC5733FC05ACDB5",
+    "labels": {
+      "hprefld": "RRfld is a field",
+      "hpridom": "RRfld is an integral domain",
+      "hppolyidom": "Poly1(RRfld) is an integral domain",
+      "hpfracfield": "Frac(Poly1(RRfld)) is a field"
+    },
+    "development_extension": "haloproof_order_halo.mm"
+  },
   "foundation_obligations": [
-    "instantiate P = Poly1(RRfld) and prove P is an integral domain using existing set.mm theorems",
-    "instantiate H = Frac(P) and prove H is a field using existing set.mm theorems",
+    "DONE: instantiate P = Poly1(RRfld) and prove P is an integral domain using existing set.mm theorems",
+    "DONE: instantiate H = Frac(P) and prove H is a field using existing set.mm theorems",
     "identify the embedded polynomial variable t in H using the canonical fraction-field embedding",
     "define eventual-sign positivity/order on H, preferably algebraically from the least-degree nonzero polynomial coefficients",
     "prove the order is independent of fraction representatives",
@@ -60,6 +71,12 @@
     "I <=card R by inclusion into H followed by H ~~ R",
     "I ~~ R by Schroeder-Bernstein"
   ],
+  "next_milestone": {
+    "gate": "FOUNDATION_VERIFIED_NEEDS_EVENTUAL_SIGN_ORDER",
+    "theorem_family": "ES1-ES5",
+    "goal": "Algebraic eventual-sign order on Frac(Poly1(RRfld)), including representative invariance and ordered-field packaging",
+    "preferred_route": "Use the coefficient of the least-degree nonzero polynomial term; use fracerl/cross multiplication to prove independence of fraction representative"
+  },
   "search_architecture": {
     "certificate_authority": "Metamath verifier only",
     "shared_bank_policy": "Only independently verified lemmas may enter the reusable bank",
@@ -90,7 +107,7 @@
   ],
   "notes": [
     "The rational-function benchmark is distinct from the separate ultrapower/nonprincipal-ultrafilter formalization in ATP/hyperreal.mm.",
-    "The frozen set.mm already supplies Poly1, Frac, fracfld, fraction-field embeddings, ordered-field interfaces, a generic infinitesimal relation, and Schroeder-Bernstein; the extension should reuse them rather than rebuild raw rational functions.",
+    "The frozen set.mm already supplies Poly1, Frac, fracfld, fraction-field embeddings, ordered-field interfaces, a generic infinitesimal relation, and Schroeder-Bernstein; the extension reuses them rather than rebuilding raw rational functions.",
     "The reference-proof construction phase is route-informed by design. The later blind benchmark must seal the reference proof and route-derived leakage.",
     "No timeout, empty frontier, crash, or budget exhaustion is evidence of falsity or independence."
   ]
