@@ -1,5 +1,5 @@
 {
-  "schema_version": "0.3",
+  "schema_version": "0.4",
   "campaign": "HaloProof Advanced Settlement Campaign",
   "benchmark_model": {
     "field": "H = R(t)",
@@ -17,7 +17,8 @@
         "ply1idom: univariate polynomials over an integral domain form an integral domain",
         "fracfld: the field of fractions of an integral domain is a field",
         "fracf1: canonical embedding into the field of fractions",
-        "coe1: coefficient function for univariate polynomials",
+        "coe1, coe1f, coe1sfi: coefficient map and finite support machinery",
+        "deg1nn0cl, deg1ldg: a nonzero polynomial degree is in NN0 and its leading coefficient is nonzero",
         "<<<: generic infinitesimal relation for ordered structures",
         "sbth: Schroeder-Bernstein theorem"
       ]
@@ -40,42 +41,44 @@
       "nontrivial admissible index excluding target leakage and direct target restatements"
     ]
   },
-  "verified_foundation": {
-    "status": "stack-checked against frozen set(3).mm; local campaign re-verification required",
+  "verified_development": {
     "frozen_setmm_sha256": "1016D7EDB0508ABDE0FE240BB5243E588C5067F8CB10EE6E1CC5733FC05ACDB5",
     "labels": {
       "hprefld": "RRfld is a field",
       "hpridom": "RRfld is an integral domain",
       "hppolyidom": "Poly1(RRfld) is an integral domain",
-      "hpfracfield": "Frac(Poly1(RRfld)) is a field"
+      "hpfracfield": "Frac(Poly1(RRfld)) is a field",
+      "hpcoe1map": "polynomial coefficient vector maps NN0 into the coefficient carrier",
+      "hpcoe1fsupp": "polynomial coefficient vector has finite support"
+    },
+    "current_candidate": {
+      "hpcoe1nzex": "a nonzero polynomial has a nonzero coefficient, witnessed by its degree"
     },
     "development_extension": "haloproof_order_halo.mm"
   },
   "foundation_obligations": [
-    "DONE: instantiate P = Poly1(RRfld) and prove P is an integral domain using existing set.mm theorems",
-    "DONE: instantiate H = Frac(P) and prove H is a field using existing set.mm theorems",
-    "identify the embedded polynomial variable t in H using the canonical fraction-field embedding",
-    "define eventual-sign positivity/order on H, preferably algebraically from the least-degree nonzero polynomial coefficients",
+    "DONE: instantiate P = Poly1(RRfld) and prove P is an integral domain",
+    "DONE: instantiate H = Frac(P) and prove H is a field",
+    "DONE: coefficient vectors map NN0 into the real coefficient carrier",
+    "DONE: coefficient vectors have finite support",
+    "CANDIDATE: prove every nonzero polynomial has a nonzero coefficient",
+    "prove the nonzero coefficient-index class has a least element",
+    "define eventual-sign positivity/order from the least-degree nonzero coefficients",
     "prove the order is independent of fraction representatives",
     "prove eventual-sign relation is a strict total order",
     "prove order is compatible with field addition and multiplication",
     "package H as an ordered field",
-    "t belongs to H and is positive",
-    "every positive real constant is greater than t",
-    "t is a nonzero infinitesimal",
-    "define the two-sided halo I in H; reuse the native <<< machinery where it shortens the proof without changing the benchmark definition",
-    "I is a subset of H",
-    "multiplication of t by a real constant is infinitesimal",
-    "r |-> r t is one-to-one from R into I",
-    "H is equipollent to R via finite coefficient data for numerator/denominator",
-    "I <=card R by inclusion into H followed by H ~~ R",
-    "I ~~ R by Schroeder-Bernstein"
+    "identify embedded t, prove positivity and infinitesimality",
+    "define the exact two-sided halo I",
+    "prove r |-> r t is one-to-one from R into I",
+    "prove H is equipollent to R via finite coefficient data",
+    "derive I <=card R and finish I ~~ R by Schroeder-Bernstein"
   ],
   "next_milestone": {
-    "gate": "FOUNDATION_VERIFIED_NEEDS_EVENTUAL_SIGN_ORDER",
-    "theorem_family": "ES1-ES5",
-    "goal": "Algebraic eventual-sign order on Frac(Poly1(RRfld)), including representative invariance and ordered-field packaging",
-    "preferred_route": "Use the coefficient of the least-degree nonzero polynomial term; use fracerl/cross multiplication to prove independence of fraction representative"
+    "gate_after_candidate_verification": "NONZERO_COEFFICIENT_VERIFIED_NEEDS_LEAST_INDEX",
+    "theorem_family": "ES1c-ES1e",
+    "goal": "Obtain the least nonzero coefficient exponent for every nonzero polynomial and define its sign near 0+",
+    "preferred_route": "Use deg1nn0cl and deg1ldg for nonemptiness, then well-ordering of NN0 for the least index"
   },
   "search_architecture": {
     "certificate_authority": "Metamath verifier only",
@@ -87,14 +90,6 @@
     "settlement_compass_role": "mesoscopic premise/territory prioritization, not an oracle for the next inference",
     "bounded_learned_intervention": true,
     "conservative_fallback": "A proof-covering unguided share must remain enabled",
-    "diverse_retrieval_channels": [
-      "syntactic similarity",
-      "dependency-graph proximity",
-      "semantic or feature similarity",
-      "theorem-family analogy",
-      "uncommon but compatible assertions",
-      "previously verified cross-domain lemmas"
-    ],
     "reflective_control": "Level-2-style controller may adapt search allocation from observed search state; it may not assert theoremhood",
     "persistence": "Atomic SHA-256 checkpoints, complete frontier state, exact expansion accounting, deterministic replay",
     "final_verification": "Fresh-process independent verification of the exact frozen target certificate"
@@ -107,7 +102,6 @@
   ],
   "notes": [
     "The rational-function benchmark is distinct from the separate ultrapower/nonprincipal-ultrafilter formalization in ATP/hyperreal.mm.",
-    "The frozen set.mm already supplies Poly1, Frac, fracfld, fraction-field embeddings, ordered-field interfaces, a generic infinitesimal relation, and Schroeder-Bernstein; the extension reuses them rather than rebuilding raw rational functions.",
     "The reference-proof construction phase is route-informed by design. The later blind benchmark must seal the reference proof and route-derived leakage.",
     "No timeout, empty frontier, crash, or budget exhaustion is evidence of falsity or independence."
   ]
