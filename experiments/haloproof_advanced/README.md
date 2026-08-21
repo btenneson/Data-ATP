@@ -36,21 +36,35 @@ and
 
 The campaign therefore reuses native machinery including `refld`, `fldidom`, `ply1idom`, `fracfld`, `fracf1`, `coe1`, the generic infinitesimal relation `<<<`, and `sbth` rather than reimplementing a rational-function field from scratch.
 
+## Verified development foundation
+
+The bundled file `haloproof_order_halo.mm` now contains the first four concrete HaloProof theorems, with no new axiom:
+
+- `hprefld`: `RRfld e. Field`;
+- `hpridom`: `RRfld e. IDomn`;
+- `hppolyidom`: `( Poly1 ` RRfld ) e. IDomn`;
+- `hpfracfield`: `( Frac ` ( Poly1 ` RRfld ) ) e. Field`.
+
+These proofs have been stack-checked against the frozen `set(3).mm` snapshot with SHA-256
+
+`1016D7EDB0508ABDE0FE240BB5243E588C5067F8CB10EE6E1CC5733FC05ACDB5`.
+
+The local campaign runner independently re-verifies those four labels with the project `metamath.py` before advancing the gate. They are foundation lemmas only; they do **not** yet settle the HaloProof target.
+
 The principal new formal work is now narrower:
 
 1. define eventual-sign positivity/order near `0+`, preferably algebraically using the least-degree nonzero polynomial coefficients;
-2. prove that this sign/order is independent of the chosen fraction representative;
-3. identify the embedded polynomial variable as `t` and prove that it is a positive infinitesimal;
-4. define the exact **two-sided** halo required by the benchmark (the native `<<<` relation may help but must not silently replace the benchmark definition);
-5. prove `r |-> r t` is an injection from `RR` into the halo;
-6. prove `H ~~ RR` from finite real coefficient data and derive the reverse cardinal inequality for the halo;
-7. finish with `sbth`.
+2. prove that this sign/order is independent of the chosen fraction representative, using the native fraction equivalence/cross-multiplication machinery such as `fracerl`;
+3. prove the relation is a strict total order compatible with the field operations and package the benchmark structure as an ordered field;
+4. identify the embedded polynomial variable as `t` and prove that it is a positive infinitesimal;
+5. define the exact **two-sided** halo required by the benchmark (the native `<<<` relation may help but must not silently replace the benchmark definition);
+6. prove `r |-> r t` is an injection from `RR` into the halo;
+7. prove `H ~~ RR` from finite real coefficient data and derive the reverse cardinal inequality for the halo;
+8. finish with `sbth`.
 
-## Why the campaign begins with a development gate
+## Why the campaign has development gates
 
 HaloProof requires a reference proof before the blind benchmark is opened. That is not a hint to the blind ATP. It is a protocol check that the exact frozen target is actually derivable in the exact frozen environment.
-
-At present, this directory therefore begins with an **environment/reference-proof gate** rather than pretending that a long proof search against an unfinished extension is a meaningful HaloProof run.
 
 The gate requires:
 
@@ -80,38 +94,34 @@ The intended final campaign combines:
 
 `campaign.json` is the machine-readable campaign specification.
 
-## Run the first local gate on Windows
+## Verify the current development milestone on Windows
 
-From a PowerShell prompt in a checkout of this branch:
+From the HaloProof directory, first update the branch:
 
 ```powershell
-cd .\experiments\haloproof_advanced
+cd C:\Users\12096\GitHub\Data-ATP\experiments\haloproof_advanced
+git pull
+```
+
+Then run:
+
+```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\run_haloproof.ps1 `
-  -ATPRoot "C:\path\to\ATP" `
-  -SetMM "C:\path\to\frozen\set.mm"
+  -ATPRoot "C:\Users\12096\GitHub\ATP" `
+  -SetMM "C:\google drive\Automated Theorem Proving\set.mm"
 ```
 
 The `ExecutionPolicy Bypass` applies only to that child PowerShell invocation; it does not permanently change the machine policy.
 
-The first run verifies the local verifier, hashes the frozen inputs, and inventories the native `Poly1`, `Frac`, coefficient, ordered-field, infinitesimal, cardinality, and Schroeder-Bernstein machinery in the exact `set.mm` snapshot. It writes a timestamped run directory and `HALOPROOF_MANIFEST.json`.
+The runner verifies the local verifier, hashes the frozen inputs, inventories the native `Poly1`, `Frac`, coefficient, ordered-field, infinitesimal, cardinality, and Schroeder-Bernstein machinery, concatenates the bundled development extension, and verifies exactly the four foundation labels above.
 
-Until the smaller HaloProof order/halo extension is supplied, the expected gate is:
+If that succeeds, the expected gate is now:
 
-`NEEDS_HALOPROOF_ORDER_HALO_EXTENSION`
+`FOUNDATION_VERIFIED_NEEDS_EVENTUAL_SIGN_ORDER`
 
-That is a development status, **not** a mathematical outcome.
+That means the concrete field foundation is formally verified and the next missing theorem family is the algebraic eventual-sign order. It is a development status, **not** a final mathematical outcome.
 
-When a candidate extension exists, run:
-
-```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\run_haloproof.ps1 `
-  -ATPRoot "C:\path\to\ATP" `
-  -SetMM "C:\path\to\frozen\set.mm" `
-  -Extension "C:\path\to\haloproof_order_halo.mm" `
-  -TargetLabel "EXACT_TARGET_LABEL"
-```
-
-The runner concatenates the exact frozen database and extension in the run artifact directory, requires a zero-error grammar round trip, parses the target tree, records the exact target identity, and then stops at `REFERENCE_PROOF_REQUIRED`.
+A complete order/halo/target extension will later be supplied with `-Extension` and `-TargetLabel`; that route performs grammar/target checks and stops at `REFERENCE_PROOF_REQUIRED` before any blind run.
 
 ## Result semantics
 
