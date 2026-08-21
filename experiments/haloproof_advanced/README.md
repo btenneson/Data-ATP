@@ -34,20 +34,21 @@ and
 
 `H = Frac(P) = Frac(Poly1(RRfld))`.
 
-The campaign therefore reuses native machinery including `refld`, `fldidom`, `ply1idom`, `fracfld`, `fracf1`, `coe1`, `coe1f`, `coe1sfi`, the generic infinitesimal relation `<<<`, and `sbth` rather than reimplementing a rational-function field from scratch.
+The campaign reuses native machinery including `refld`, `fldidom`, `ply1idom`, `fracfld`, `fracf1`, `coe1`, `coe1f`, `coe1sfi`, `deg1nn0cl`, `deg1ldg`, the generic infinitesimal relation `<<<`, and `sbth` rather than reimplementing a rational-function field from scratch.
 
 ## Verified and candidate development lemmas
 
-The bundled file `haloproof_order_halo.mm` contains the following concrete HaloProof development lemmas, with no new axiom:
+The bundled file `haloproof_order_halo.mm` contains the following no-new-axiom development lemmas:
 
 - `hprefld`: `RRfld e. Field`;
 - `hpridom`: `RRfld e. IDomn`;
 - `hppolyidom`: `( Poly1 ` RRfld ) e. IDomn`;
 - `hpfracfield`: `( Frac ` ( Poly1 ` RRfld ) ) e. Field`;
 - `hpcoe1map`: coefficients of a concrete polynomial map `NN0` into the real-field carrier;
-- `hpcoe1fsupp`: the coefficient vector has finite support relative to real zero.
+- `hpcoe1fsupp`: the coefficient vector has finite support relative to real zero;
+- `hpcoe1nzex`: candidate theorem that a nonzero polynomial has at least one nonzero coefficient.
 
-The first four have already been independently accepted by the local project verifier on the frozen `set.mm`. The last two are the current verifier candidates. They are promoted to verified status only if the next local campaign run accepts them on the same frozen snapshot.
+The first six have been independently accepted by the local project verifier on the frozen `set.mm`. `hpcoe1nzex` is the current candidate. It uses the native polynomial degree as a witness: `deg1nn0cl` places the degree in `NN0`, while `deg1ldg` proves the coefficient at that degree is nonzero.
 
 The frozen snapshot used in the campaign has SHA-256
 
@@ -57,9 +58,9 @@ These are development lemmas only; they do **not** yet settle the HaloProof targ
 
 The next mathematical steps are deliberately small:
 
-1. prove that a nonzero polynomial has nonempty coefficient support;
-2. use well-ordering of `NN0` to obtain a least nonzero exponent;
-3. define the polynomial sign near `0+` as the sign of the coefficient at that least exponent;
+1. independently verify `hpcoe1nzex`;
+2. define the nonzero coefficient-index class and use well-ordering of `NN0` to obtain its least element;
+3. define polynomial sign near `0+` from the coefficient at that least exponent;
 4. prove multiplication compatibility;
 5. lift the sign to `Frac(P)` and prove independence of representatives using `fracerl`;
 6. prove the resulting relation is a strict total order compatible with the field operations;
@@ -69,64 +70,34 @@ The next mathematical steps are deliberately small:
 
 ## Why the campaign has development gates
 
-HaloProof requires a reference proof before the blind benchmark is opened. That is not a hint to the blind ATP. It is a protocol check that the exact frozen target is actually derivable in the exact frozen environment.
+HaloProof requires a reference proof before the blind benchmark is opened. That is a protocol check that the exact frozen target is derivable in the exact frozen environment, not a hint supplied to the later blind ATP.
 
-The gate requires:
+The gate requires an exact frozen `set.mm`, a conservative order/halo extension, an exact target label, a separately verified reference certificate, independent verifier agreement, and a nontrivial admissible theorem index excluding target leakage and direct restatements.
 
-- an exact frozen `set.mm` plus SHA-256;
-- a conservative HaloProof eventual-sign order/halo/target extension plus SHA-256;
-- a target label whose parse tree is valid;
-- a separately verified reference certificate;
-- independent verifier agreement;
-- a nontrivial admissible theorem index excluding target leakage and direct restatements.
-
-Only after those exist should the final proof be removed/sealed from the blind condition and the advanced search controller be launched.
+Only after those exist should the final proof be sealed away from the blind condition and the advanced search controller be launched.
 
 ## Search architecture after the gate
 
-The intended final campaign combines:
-
-- legal-first candidate construction from the repaired Predator line;
-- subject-conditioned dense preparation;
-- quotient/canonical proof-state representation where sound;
-- settlement-compass guidance for relevant proof territory;
-- bounded learned intervention with a guaranteed proof-covering fallback;
-- diverse retrieval/creativity channels without allowing novelty to bypass verification;
-- a shared bank containing only independently verified lemmas;
-- a level-2-style reflective controller that may reallocate search effort from observed state but never decides theoremhood;
-- atomic SHA-256 checkpoints, exact committed-expansion accounting, deterministic replay, and reboot recovery;
-- fresh-process independent verification before any `VERIFIED_PROOF` result is accepted.
-
-`campaign.json` is the machine-readable campaign specification.
+The intended final campaign combines legal-first candidate construction, subject-conditioned dense preparation, quotient/canonical proof-state representation where sound, settlement-compass premise/territory guidance, bounded learned intervention with a proof-covering fallback, diverse retrieval/creativity channels, a shared bank containing only verified lemmas, level-2-style reflective resource allocation, atomic checkpoints with deterministic replay, and fresh-process verification before any `VERIFIED_PROOF` result is accepted.
 
 ## Verify the current development milestone on Windows
-
-From the HaloProof directory, first update the branch:
 
 ```powershell
 cd C:\Users\12096\GitHub\Data-ATP\experiments\haloproof_advanced
 git pull
-```
 
-Then run:
-
-```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\run_haloproof.ps1 `
   -ATPRoot "C:\Users\12096\GitHub\ATP" `
   -SetMM "C:\google drive\Automated Theorem Proving\set.mm"
 ```
 
-The `ExecutionPolicy Bypass` applies only to that child PowerShell invocation; it does not permanently change the machine policy.
+The runner checks all seven development labels against the frozen database. If successful, the expected gate is:
 
-The runner verifies the local verifier, hashes the frozen inputs, inventories the native machinery, concatenates the bundled development extension, and asks the project Metamath verifier to check all six labels listed above.
+`NONZERO_COEFFICIENT_VERIFIED_NEEDS_LEAST_INDEX`
 
-If that succeeds, the expected gate is:
+That means we have formally reached the point where a nonzero polynomial is known to have a nonzero coefficient; the next missing result is existence of the **least** such coefficient index.
 
-`COEFFICIENT_SUPPORT_VERIFIED_NEEDS_NONEMPTY_SUPPORT`
-
-That means the field foundation and the finite-support prerequisite for the least-nonzero-coefficient construction are formally verified. The next missing result is that a **nonzero** polynomial has **nonempty** support. It is a development status, not a final mathematical outcome.
-
-If either candidate proof is malformed, the run instead stops at `PROTOCOL_FAILURE_DEVELOPMENT_VERIFY`; that is exactly why this gate exists. A failed candidate is corrected rather than counted as evidence about the HaloProof theorem.
+If the candidate is malformed, the run stops at `PROTOCOL_FAILURE_DEVELOPMENT_VERIFY`. That is a failed candidate proof, not evidence against the HaloProof theorem.
 
 A complete order/halo/target extension will later be supplied with `-Extension` and `-TargetLabel`; that route performs grammar/target checks and stops at `REFERENCE_PROOF_REQUIRED` before any blind run.
 
