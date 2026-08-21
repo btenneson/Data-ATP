@@ -1,0 +1,79 @@
+{
+  "schema_version": "0.1",
+  "campaign": "HaloProof Advanced Settlement Campaign",
+  "benchmark_model": {
+    "field": "H = R(t)",
+    "order": "eventual sign near 0+",
+    "halo": "I = {x in H : for every positive integer n, |x| < 1/n}",
+    "target": "I is equipollent to R",
+    "known_reference_route": [
+      "R <=card I via r |-> r t",
+      "I <=card H via inclusion",
+      "H ~~ R via coding rational functions by finite real data",
+      "I <=card R by composition",
+      "I ~~ R by Schroeder-Bernstein"
+    ]
+  },
+  "development_gate": {
+    "required_before_blind_target_run": [
+      "exact frozen set.mm snapshot and SHA-256",
+      "exact conservative HaloProof extension and SHA-256",
+      "exact target label and parsed target statement",
+      "verified reference certificate built outside the blind search condition",
+      "independent verifier agreement on the reference certificate",
+      "nontrivial admissible index excluding target leakage and direct target restatements"
+    ]
+  },
+  "foundation_obligations": [
+    "rational-function construction exists as a set",
+    "representative equivalence is an equivalence relation",
+    "addition is well defined on equivalence classes",
+    "multiplication is well defined on equivalence classes",
+    "H is a field",
+    "eventual-sign relation is well defined",
+    "eventual-sign relation is a strict total order",
+    "order is compatible with field addition and multiplication",
+    "H is an ordered field",
+    "t belongs to H",
+    "t is positive",
+    "every positive real constant is greater than t",
+    "t is a nonzero infinitesimal",
+    "I is a subset of H",
+    "multiplication of t by a real constant is infinitesimal",
+    "r |-> r t is one-to-one from R into I",
+    "H is equipollent to R",
+    "equipollence and cardinal dominance compose in the required directions"
+  ],
+  "search_architecture": {
+    "certificate_authority": "Metamath verifier only",
+    "shared_bank_policy": "Only independently verified lemmas may enter the reusable bank",
+    "legal_first": true,
+    "quotient_state_canonicalization": true,
+    "subject_conditioned_density": true,
+    "settlement_compass_role": "mesoscopic premise/territory prioritization, not an oracle for the next inference",
+    "bounded_learned_intervention": true,
+    "conservative_fallback": "A proof-covering unguided share must remain enabled",
+    "diverse_retrieval_channels": [
+      "syntactic similarity",
+      "dependency-graph proximity",
+      "semantic or feature similarity",
+      "theorem-family analogy",
+      "uncommon but compatible assertions",
+      "previously verified cross-domain lemmas"
+    ],
+    "reflective_control": "Level-2-style controller may adapt search allocation from observed search state; it may not assert theoremhood",
+    "persistence": "Atomic SHA-256 checkpoints, complete frontier state, exact expansion accounting, deterministic replay",
+    "final_verification": "Fresh-process independent verification of the exact frozen target certificate"
+  },
+  "outcomes": [
+    "VERIFIED_PROOF",
+    "VERIFIED_REFUTATION",
+    "BUDGET_EXHAUSTED_UNKNOWN",
+    "PROTOCOL_FAILURE"
+  ],
+  "notes": [
+    "The rational-function benchmark is distinct from the separate ultrapower/nonprincipal-ultrafilter formalization in ATP/hyperreal.mm.",
+    "The reference-proof construction phase is route-informed by design. The later blind benchmark must seal the reference proof and route-derived leakage.",
+    "No timeout, empty frontier, crash, or budget exhaustion is evidence of falsity or independence."
+  ]
+}
