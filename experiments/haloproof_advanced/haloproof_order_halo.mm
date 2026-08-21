@@ -8,17 +8,21 @@ $(
       P = Poly1(RRfld)
       H = Frac(P).
 
-  The four theorems below have been independently stack-checked against the
+  The foundation theorems below have been independently verified against the
   frozen set(3).mm snapshot with SHA-256
 
       1016D7EDB0508ABDE0FE240BB5243E588C5067F8CB10EE6E1CC5733FC05ACDB5
 
-  They are intentionally small.  Later milestones should be added only after
-  the Metamath verifier accepts them.
+  Candidate lemmas are promoted to verified status only after the campaign
+  verifier accepts them on that same frozen database.
 
   Remaining theorem families, in order:
 
-  ES1  define least-nonzero-coefficient sign for nonzero Poly1(RRfld)
+  ES1a coefficient vector maps NN0 into the real coefficient carrier
+  ES1b coefficient vector has finite support
+  ES1c nonzero polynomial has nonempty coefficient support
+  ES1d least nonzero exponent exists
+  ES1e define least-nonzero-coefficient sign for nonzero Poly1(RRfld)
   ES2  prove polynomial eventual-sign multiplication compatibility
   ES3  lift sign to Frac(P) and prove representative invariance via fracerl
   ES4  prove strict total order and compatibility with field operations
@@ -68,4 +72,38 @@ hpfracfield $p |- ( Frac ` ( Poly1 ` RRfld ) ) e. Field $=
   crefld cpl1 cfv cidom wcel id
   fracfld
   ax-mp
+$.
+
+$( ES1a candidate: coefficients of a concrete HaloProof polynomial form a
+   map from NN0 into the base set of the real field. $)
+hpcoe1map $p |- ( F e. ( Base ` ( Poly1 ` RRfld ) ) ->
+  ( coe1 ` F ) : NN0 --> ( Base ` RRfld ) ) $=
+  cF cco1 cfv
+  crefld cpl1 cfv cbs cfv
+  crefld cpl1 cfv
+  crefld
+  cF
+  crefld cbs cfv
+  cF cco1 cfv eqid
+  crefld cpl1 cfv cbs cfv eqid
+  crefld cpl1 cfv eqid
+  crefld cbs cfv eqid
+  coe1f
+$.
+
+$( ES1b candidate: the coefficient vector of a concrete HaloProof polynomial
+   has finite support relative to the real-field zero. $)
+hpcoe1fsupp $p |- ( F e. ( Base ` ( Poly1 ` RRfld ) ) ->
+  ( coe1 ` F ) finSupp ( 0g ` RRfld ) ) $=
+  cF cco1 cfv
+  crefld cpl1 cfv cbs cfv
+  crefld cpl1 cfv
+  crefld
+  cF
+  crefld c0g cfv
+  cF cco1 cfv eqid
+  crefld cpl1 cfv cbs cfv eqid
+  crefld cpl1 cfv eqid
+  crefld c0g cfv eqid
+  coe1sfi
 $.
