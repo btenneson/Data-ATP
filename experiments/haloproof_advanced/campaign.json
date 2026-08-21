@@ -1,11 +1,27 @@
 {
-  "schema_version": "0.1",
+  "schema_version": "0.2",
   "campaign": "HaloProof Advanced Settlement Campaign",
   "benchmark_model": {
     "field": "H = R(t)",
     "order": "eventual sign near 0+",
     "halo": "I = {x in H : for every positive integer n, |x| < 1/n}",
     "target": "I is equipollent to R",
+    "concrete_setmm_route": {
+      "real_field": "RRfld",
+      "polynomial_ring": "Poly1 ` RRfld",
+      "rational_function_field": "Frac ` ( Poly1 ` RRfld )",
+      "variable": "var1 ` RRfld",
+      "native_results_to_reuse": [
+        "refld: RRfld is a field",
+        "fldidom: every field is an integral domain",
+        "ply1idom: univariate polynomials over an integral domain form an integral domain",
+        "fracfld: the field of fractions of an integral domain is a field",
+        "fracf1: canonical embedding into the field of fractions",
+        "coe1: coefficient function for univariate polynomials",
+        "<<<: generic infinitesimal relation for ordered structures",
+        "sbth: Schroeder-Bernstein theorem"
+      ]
+    },
     "known_reference_route": [
       "R <=card I via r |-> r t",
       "I <=card H via inclusion",
@@ -17,7 +33,7 @@
   "development_gate": {
     "required_before_blind_target_run": [
       "exact frozen set.mm snapshot and SHA-256",
-      "exact conservative HaloProof extension and SHA-256",
+      "exact conservative HaloProof order/halo extension and SHA-256",
       "exact target label and parsed target statement",
       "verified reference certificate built outside the blind search condition",
       "independent verifier agreement on the reference certificate",
@@ -25,28 +41,29 @@
     ]
   },
   "foundation_obligations": [
-    "rational-function construction exists as a set",
-    "representative equivalence is an equivalence relation",
-    "addition is well defined on equivalence classes",
-    "multiplication is well defined on equivalence classes",
-    "H is a field",
-    "eventual-sign relation is well defined",
-    "eventual-sign relation is a strict total order",
-    "order is compatible with field addition and multiplication",
-    "H is an ordered field",
-    "t belongs to H",
-    "t is positive",
+    "instantiate P = Poly1(RRfld) and prove P is an integral domain using existing set.mm theorems",
+    "instantiate H = Frac(P) and prove H is a field using existing set.mm theorems",
+    "identify the embedded polynomial variable t in H using the canonical fraction-field embedding",
+    "define eventual-sign positivity/order on H, preferably algebraically from the least-degree nonzero polynomial coefficients",
+    "prove the order is independent of fraction representatives",
+    "prove eventual-sign relation is a strict total order",
+    "prove order is compatible with field addition and multiplication",
+    "package H as an ordered field",
+    "t belongs to H and is positive",
     "every positive real constant is greater than t",
     "t is a nonzero infinitesimal",
+    "define the two-sided halo I in H; reuse the native <<< machinery where it shortens the proof without changing the benchmark definition",
     "I is a subset of H",
     "multiplication of t by a real constant is infinitesimal",
     "r |-> r t is one-to-one from R into I",
-    "H is equipollent to R",
-    "equipollence and cardinal dominance compose in the required directions"
+    "H is equipollent to R via finite coefficient data for numerator/denominator",
+    "I <=card R by inclusion into H followed by H ~~ R",
+    "I ~~ R by Schroeder-Bernstein"
   ],
   "search_architecture": {
     "certificate_authority": "Metamath verifier only",
     "shared_bank_policy": "Only independently verified lemmas may enter the reusable bank",
+    "decomposition": "verified lemma campaign rather than one monolithic proof search",
     "legal_first": true,
     "quotient_state_canonicalization": true,
     "subject_conditioned_density": true,
@@ -73,6 +90,7 @@
   ],
   "notes": [
     "The rational-function benchmark is distinct from the separate ultrapower/nonprincipal-ultrafilter formalization in ATP/hyperreal.mm.",
+    "The frozen set.mm already supplies Poly1, Frac, fracfld, fraction-field embeddings, ordered-field interfaces, a generic infinitesimal relation, and Schroeder-Bernstein; the extension should reuse them rather than rebuild raw rational functions.",
     "The reference-proof construction phase is route-informed by design. The later blind benchmark must seal the reference proof and route-derived leakage.",
     "No timeout, empty frontier, crash, or budget exhaustion is evidence of falsity or independence."
   ]
