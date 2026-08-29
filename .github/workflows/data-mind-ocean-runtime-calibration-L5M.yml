@@ -1,0 +1,57 @@
+name: DATA-MIND Ocean runtime calibration L5M
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/data-mind-ocean-runtime-calibration-L5M.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  calibrate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Record machine memory
+        run: free -h
+      - name: Recover frozen R01 generator
+        shell: bash
+        run: |
+          set -euo pipefail
+          R01=953b0503b164cfc32ad939bef642d30781e6575e
+          git fetch --no-tags --depth=1 origin "$R01"
+          mkdir -p "$RUNNER_TEMP/r01"
+          git show "$R01:benchmarks/notald_ocean_r01/scripts/generate_tied_ocean_v1.py" > "$RUNNER_TEMP/r01/generate.py"
+      - name: Generate L5M calibration instance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python "$RUNNER_TEMP/r01/generate.py" --out "$RUNNER_TEMP/ocean" --depths 5000000 --seeds 1729
+      - name: Run generic DATA-MIND search core
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          P=$(find "$RUNNER_TEMP/ocean/solver_inputs/standard" -name '*.p' | head -1)
+          /usr/bin/time -v timeout 180s python experiments/data_mind_ocean_calibrate.py \
+            --problem "$P" \
+            --reference benchmarks/ocean_reference/reference_solvers.py \
+            --max-expansions 100000000 \
+            --out results/L5000000.json \
+            2> results/L5000000.time.txt
+          cat results/L5000000.json
+          cat results/L5000000.time.txt
+      - name: Upload result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: data-mind-ocean-calibration-L5M
+          path: results/
+          if-no-files-found: warn
