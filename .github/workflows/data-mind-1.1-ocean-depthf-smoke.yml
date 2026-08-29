@@ -1,0 +1,136 @@
+name: DATA-MIND 1.0 vs 1.1 Ocean Depths-F n5 smoke
+
+on:
+  push:
+    branches:
+      - data-mind-1.1-ocean-depthf-smoke
+    paths:
+      - '.github/workflows/data-mind-1.1-ocean-depthf-smoke.yml'
+      - 'experiments/data_mind_ocean_depthf_smoke.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: DATA-MIND ${{ matrix.architecture }} n=5
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        architecture: ['1.0', '1.1']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Recover frozen R01 generator and Depths-F control
+        shell: bash
+        run: |
+          set -euo pipefail
+          R01_COMMIT=953b0503b164cfc32ad939bef642d30781e6575e
+          git fetch --no-tags --depth=1 origin "$R01_COMMIT"
+          mkdir -p "$RUNNER_TEMP/r01"
+          git show "$R01_COMMIT:benchmarks/notald_ocean_r01/scripts/generate_tied_ocean_v1.py" \
+            > "$RUNNER_TEMP/r01/generate_tied_ocean_v1.py"
+          git show "$R01_COMMIT:benchmarks/notald_ocean_r01/scripts/ocean_reference_controls.py" \
+            > "$RUNNER_TEMP/r01/ocean_reference_controls.py"
+          {
+            echo "r01_commit=$R01_COMMIT"
+            sha256sum "$RUNNER_TEMP/r01/generate_tied_ocean_v1.py"
+            sha256sum "$RUNNER_TEMP/r01/ocean_reference_controls.py"
+          } | tee "$RUNNER_TEMP/r01/frozen_reference.txt"
+
+      - name: Generate the identical five sealed Ocean cases
+        shell: bash
+        run: |
+          set -euo pipefail
+          python "$RUNNER_TEMP/r01/generate_tied_ocean_v1.py" \
+            --out "$RUNNER_TEMP/ocean_n5" \
+            --depths 10 25 75 100 250 \
+            --seeds 1729
+          test "$(find "$RUNNER_TEMP/ocean_n5/solver_inputs/standard" -maxdepth 1 -name '*.p' | wc -l)" -eq 5
+          sha256sum "$RUNNER_TEMP/ocean_n5/solver_inputs/standard"/*.p \
+            | sort | tee "$RUNNER_TEMP/ocean_n5/input_hashes.txt"
+
+      - name: Run DATA-MIND ${{ matrix.architecture }} architecture smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$GITHUB_WORKSPACE/results/data_mind_${{ matrix.architecture }}"
+          mkdir -p "$OUT"
+          cp "$RUNNER_TEMP/r01/frozen_reference.txt" "$OUT/"
+          cp "$RUNNER_TEMP/ocean_n5/input_hashes.txt" "$OUT/"
+          python experiments/data_mind_ocean_depthf_smoke.py \
+            --version '${{ matrix.architecture }}' \
+            --problems "$RUNNER_TEMP/ocean_n5/solver_inputs/standard" \
+            --depths-f-script "$RUNNER_TEMP/r01/ocean_reference_controls.py" \
+            --out "$OUT"
+
+      - name: Upload DATA-MIND ${{ matrix.architecture }} smoke evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: data-mind-${{ matrix.architecture }}
+          path: results/data_mind_${{ matrix.architecture }}/
+          if-no-files-found: error
+
+  paired-check:
+    name: Paired architecture check
+    needs: smoke
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Download both architecture artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: data-mind-*
+          path: paired
+          merge-multiple: false
+
+      - name: Confirm identical inputs and both architecture passes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          p10 = Path('paired/data-mind-1.0/summary.json')
+          p11 = Path('paired/data-mind-1.1/summary.json')
+          a = json.loads(p10.read_text())
+          b = json.loads(p11.read_text())
+          if a['input_set_sha256'] != b['input_set_sha256']:
+              raise SystemExit('PAIRING FAILURE: input-set hashes differ')
+          if not a['architecture_pass'] or not b['architecture_pass']:
+              raise SystemExit('ARCHITECTURE FAILURE: at least one arm failed')
+          paired = {
+              'purpose': 'paired architecture smoke only',
+              'n_per_architecture': 5,
+              'frozen_solver': 'Depths-F_Ocean_Control_1.0',
+              'input_set_sha256': a['input_set_sha256'],
+              'data_mind_1_0_pass': a['architecture_pass'],
+              'data_mind_1_1_pass': b['architecture_pass'],
+              'data_mind_1_1_all_eight_agents_spoke_each_case': b['all_eight_agents_spoke_each_case'],
+              'data_mind_1_1_required_module_participation_ok': b['required_module_participation_ok'],
+              'both_verifier_gated': (
+                  a['all_bank_commits_verifier_gated'] and
+                  b['all_bank_commits_verifier_gated']
+              ),
+              'performance_comparison_authorized': False,
+          }
+          Path('paired_summary.json').write_text(json.dumps(paired, indent=2))
+          print(json.dumps(paired, indent=2))
+          PY
+
+      - name: Upload paired summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: data-mind-paired-summary
+          path: paired_summary.json
+          if-no-files-found: error
