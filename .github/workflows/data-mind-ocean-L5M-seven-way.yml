@@ -1,0 +1,361 @@
+name: DATA-MIND Ocean L5M seven-way held-out comparison
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/data-mind-ocean-L5M-seven-way.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compare:
+    name: ${{ matrix.display }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      max-parallel: 7
+      matrix:
+        include:
+          - id: depths-f
+            display: Depths-F
+            kind: depths
+          - id: data-mind-1.0
+            display: DATA-MIND 1.0
+            kind: data
+            version: '1.0'
+          - id: data-mind-1.1
+            display: DATA-MIND 1.1
+            kind: data
+            version: '1.1'
+          - id: vampire
+            display: Vampire 5.0.1
+            kind: professional
+          - id: e
+            display: E 3.2.5
+            kind: professional
+          - id: spass
+            display: SPASS
+            kind: professional
+          - id: prover9
+            display: Prover9
+            kind: professional
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Record runner resources
+        shell: bash
+        run: |
+          mkdir -p results/${{ matrix.id }}
+          uname -a | tee results/${{ matrix.id }}/runner.txt
+          free -h | tee -a results/${{ matrix.id }}/runner.txt
+          python --version | tee -a results/${{ matrix.id }}/runner.txt
+          git rev-parse HEAD | tee -a results/${{ matrix.id }}/runner.txt
+
+      - name: Recover frozen R01 generator, Depths-F, and strict audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          R01=953b0503b164cfc32ad939bef642d30781e6575e
+          git fetch --no-tags --depth=1 origin "$R01"
+          mkdir -p "$RUNNER_TEMP/r01"
+          git show "$R01:benchmarks/notald_ocean_r01/scripts/generate_tied_ocean_v1.py" > "$RUNNER_TEMP/r01/generate.py"
+          git show "$R01:benchmarks/notald_ocean_r01/scripts/ocean_reference_controls.py" > "$RUNNER_TEMP/r01/ocean_reference_controls.py"
+          git show "$R01:benchmarks/notald_ocean_r01/scripts/verify_professional_ocean_proof.py" > "$RUNNER_TEMP/r01/strict_audit.py"
+          {
+            echo "R01_COMMIT=$R01"
+            sha256sum "$RUNNER_TEMP/r01/generate.py"
+            sha256sum "$RUNNER_TEMP/r01/ocean_reference_controls.py"
+            sha256sum "$RUNNER_TEMP/r01/strict_audit.py"
+          } | tee results/${{ matrix.id }}/frozen_sources.txt
+
+      - name: Generate held-out L=5,000,000 Ocean input
+        shell: bash
+        run: |
+          set -euo pipefail
+          python "$RUNNER_TEMP/r01/generate.py" \
+            --out "$RUNNER_TEMP/ocean_eval" \
+            --depths 5000000 \
+            --seeds 104729
+          P=$(find "$RUNNER_TEMP/ocean_eval/solver_inputs/standard" -maxdepth 1 -name '*.p' | head -1)
+          test -n "$P"
+          echo "PROBLEM=$P" >> "$GITHUB_ENV"
+          sha256sum "$P" | tee results/${{ matrix.id }}/problem_sha256.txt
+          stat -c 'input_bytes=%s' "$P" | tee -a results/${{ matrix.id }}/problem_sha256.txt
+          # Evaluator-only metadata stays outside every solver command.
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          key=json.loads((Path(os.environ['RUNNER_TEMP'])/'ocean_eval/evaluator_only/answer_key.json').read_text())
+          row=key[0]
+          assert row['Lstar']==5000000 and row['seed']==104729 and row['bfs_verified_Lstar']==5000000
+          print('evaluator audit: held-out seed=104729 L*=5000000 BFS_OK')
+          PY
+
+      - name: Install common professional ATP prerequisites
+        if: matrix.kind == 'professional'
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential git cmake jq gawk curl unzip
+
+      - name: Install Vampire 5.0.1
+        if: matrix.id == 'vampire'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/vampire"
+          python - <<'PY'
+          import json, os, pathlib, urllib.request
+          url='https://api.github.com/repos/vprover/vampire/releases/tags/v5.0.1'
+          req=urllib.request.Request(url,headers={'Accept':'application/vnd.github+json','User-Agent':'data-mind-ocean-L5M'})
+          rel=json.load(urllib.request.urlopen(req))
+          assets=rel.get('assets',[])
+          def rank(a):
+              n=a['name'].lower(); linux='linux' in n
+              x86=any(x in n for x in ('x86_64','x86-64','amd64','x64'))
+              source=any(x in n for x in ('source','src'))
+              return (linux and x86 and not source, linux and not source, not source)
+          candidates=sorted(assets,key=rank,reverse=True)
+          if not candidates or not rank(candidates[0])[1]: raise SystemExit('No Linux Vampire asset')
+          a=candidates[0]
+          dest=pathlib.Path(os.environ['RUNNER_TEMP'])/'vampire'/a['name']
+          urllib.request.urlretrieve(a['browser_download_url'],dest)
+          print(a['name'])
+          PY
+          ASSET=$(find "$RUNNER_TEMP/vampire" -maxdepth 1 -type f | head -1)
+          case "$ASSET" in
+            *.tar.gz|*.tgz) tar -xzf "$ASSET" -C "$RUNNER_TEMP/vampire" ;;
+            *.tar.xz) tar -xJf "$ASSET" -C "$RUNNER_TEMP/vampire" ;;
+            *.zip) unzip -q "$ASSET" -d "$RUNNER_TEMP/vampire" ;;
+            *) chmod +x "$ASSET" ;;
+          esac
+          VAMPIRE_BIN=$(find "$RUNNER_TEMP/vampire" -type f \( -name 'vampire' -o -name 'vampire*' \) -not -name '*.tar*' -not -name '*.zip' | head -1)
+          test -n "$VAMPIRE_BIN"; chmod +x "$VAMPIRE_BIN"
+          echo "VAMPIRE_BIN=$VAMPIRE_BIN" >> "$GITHUB_ENV"
+          "$VAMPIRE_BIN" --version | tee results/${{ matrix.id }}/solver_version.txt || true
+
+      - name: Build E 3.2.5
+        if: matrix.id == 'e'
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL 'https://wwwlehre.dhbw-stuttgart.de/~sschulz/WORK/E_DOWNLOAD/V_3.2/E.tgz' -o "$RUNNER_TEMP/E.tgz"
+          tar -xzf "$RUNNER_TEMP/E.tgz" -C "$RUNNER_TEMP"
+          cd "$RUNNER_TEMP/E"
+          ./configure
+          make rebuild -j2
+          EPROVER_BIN="$RUNNER_TEMP/E/PROVER/eprover"
+          test -x "$EPROVER_BIN"
+          echo "EPROVER_BIN=$EPROVER_BIN" >> "$GITHUB_ENV"
+          "$EPROVER_BIN" --version | tee "$GITHUB_WORKSPACE/results/${{ matrix.id }}/solver_version.txt"
+
+      - name: Install SPASS
+        if: matrix.id == 'spass'
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get install -y spass
+          command -v SPASS | tee results/${{ matrix.id }}/solver_version.txt
+          SPASS -h 2>&1 | head -20 | tee -a results/${{ matrix.id }}/solver_version.txt || true
+
+      - name: Build Prover9
+        if: matrix.id == 'prover9'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/AlgorithmicTruth/Prover9.git "$RUNNER_TEMP/Prover9"
+          git -C "$RUNNER_TEMP/Prover9" rev-parse HEAD | tee results/${{ matrix.id }}/solver_version.txt
+          make -C "$RUNNER_TEMP/Prover9" all -j2
+          PROVER9_BIN="$RUNNER_TEMP/Prover9/bin/prover9"
+          test -x "$PROVER9_BIN"
+          echo "PROVER9_BIN=$PROVER9_BIN" >> "$GITHUB_ENV"
+
+      - name: Run Depths-F specialist
+        if: matrix.id == 'depths-f'
+        shell: bash
+        run: |
+          set +e
+          OUT=results/${{ matrix.id }}
+          /usr/bin/time -f 'process_wall_s=%e\nmax_rss_kb=%M' -o "$OUT/process_time.txt" \
+            timeout 180s python "$RUNNER_TEMP/r01/ocean_reference_controls.py" \
+              --solver depths-f --problem "$PROBLEM" \
+              --out "$OUT/native_result.json" --cert "$OUT/certificate.txt"
+          RC=$?
+          python - "$OUT" "$PROBLEM" "$RC" <<'PY'
+          import hashlib,json,sys
+          from pathlib import Path
+          out=Path(sys.argv[1]); p=Path(sys.argv[2]); rc=int(sys.argv[3])
+          def h(path):
+              x=hashlib.sha256();
+              with path.open('rb') as f:
+                  for b in iter(lambda:f.read(1024*1024),b''): x.update(b)
+              return x.hexdigest()
+          native={}
+          if (out/'native_result.json').exists(): native=json.loads((out/'native_result.json').read_text())
+          result={
+            'solver':'Depths-F_Ocean_Control_1.0',
+            'status':native.get('status','TIMEOUT' if rc==124 else 'FAULT'),
+            'certificate_verified':native.get('certificate_verified',False),
+            'proof_length':native.get('proof_length'),
+            'expansions':native.get('expansions'),
+            'solver_internal_wall_s':native.get('wall_s_internal'),
+            'returncode':rc,
+            'problem_sha256':h(p),
+            'specialist_for_ocean':True,
+            'hidden_metadata_read':False,
+          }
+          (out/'result.json').write_text(json.dumps(result,indent=2))
+          print(json.dumps(result,indent=2))
+          PY
+          exit 0
+
+      - name: Run DATA-MIND generic architecture
+        if: matrix.kind == 'data'
+        shell: bash
+        run: |
+          set +e
+          OUT=results/${{ matrix.id }}
+          /usr/bin/time -f 'process_wall_s=%e\nmax_rss_kb=%M' -o "$OUT/process_time.txt" \
+            timeout 180s python experiments/data_mind_ocean_compare_runner.py \
+              --version '${{ matrix.version }}' \
+              --problem "$PROBLEM" \
+              --reference benchmarks/ocean_reference/reference_solvers.py \
+              --max-expansions 100000000 \
+              --out "$OUT/result.json" \
+              --trace "$OUT/trace.json"
+          RC=$?
+          if [ ! -f "$OUT/result.json" ]; then
+            python - "$OUT" "$PROBLEM" "$RC" '${{ matrix.version }}' <<'PY'
+          import hashlib,json,sys
+          from pathlib import Path
+          out=Path(sys.argv[1]); p=Path(sys.argv[2]); rc=int(sys.argv[3]); v=sys.argv[4]
+          h=hashlib.sha256(p.read_bytes()).hexdigest()
+          (out/'result.json').write_text(json.dumps({'solver':f'DATA-MIND {v} Ocean prototype','status':'TIMEOUT' if rc==124 else 'FAULT','certificate_verified':False,'returncode':rc,'problem_sha256':h},indent=2))
+          PY
+          fi
+          cat "$OUT/result.json"
+          exit 0
+
+      - name: Run professional ATP with strict certificate audit
+        if: matrix.kind == 'professional'
+        shell: bash
+        run: |
+          set +e
+          OUT=results/${{ matrix.id }}
+          case '${{ matrix.id }}' in
+            vampire) DISPLAY=Vampire ;;
+            e) DISPLAY=E ;;
+            spass) DISPLAY=SPASS ;;
+            prover9) DISPLAY=Prover9 ;;
+          esac
+          /usr/bin/time -f 'process_wall_s=%e\nmax_rss_kb=%M' -o "$OUT/process_time.txt" \
+            timeout 180s python experiments/ocean_professional_compare_runner.py \
+              --solver "$DISPLAY" --problem "$PROBLEM" \
+              --audit-script "$RUNNER_TEMP/r01/strict_audit.py" \
+              --out-dir "$OUT" --time-limit 150 --outer-grace 15
+          RC=$?
+          if [ ! -f "$OUT/result.json" ]; then
+            python - "$OUT" "$PROBLEM" "$RC" "$DISPLAY" <<'PY'
+          import hashlib,json,sys
+          from pathlib import Path
+          out=Path(sys.argv[1]); p=Path(sys.argv[2]); rc=int(sys.argv[3]); name=sys.argv[4]
+          h=hashlib.sha256(p.read_bytes()).hexdigest()
+          (out/'result.json').write_text(json.dumps({'solver':name,'status':'TIMEOUT' if rc==124 else 'FAULT','certificate_verified':False,'returncode':rc,'problem_sha256':h},indent=2))
+          PY
+          fi
+          cat "$OUT/result.json"
+          exit 0
+
+      - name: Upload solver evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ocean-L5M-${{ matrix.id }}
+          path: results/${{ matrix.id }}/
+          if-no-files-found: error
+          retention-days: 90
+
+  summarize:
+    name: Seven-way comparison summary
+    needs: compare
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Download solver evidence
+        uses: actions/download-artifact@v4
+        with:
+          pattern: ocean-L5M-*
+          path: all_results
+          merge-multiple: false
+
+      - name: Verify pairing and build summary
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json,re
+          from pathlib import Path
+
+          rows=[]
+          for result_path in sorted(Path('all_results').glob('ocean-L5M-*/result.json')):
+              r=json.loads(result_path.read_text())
+              pt=result_path.parent/'process_time.txt'
+              if pt.exists():
+                  for line in pt.read_text(errors='replace').splitlines():
+                      if line.startswith('process_wall_s='):
+                          try:r['process_wall_s']=float(line.split('=',1)[1])
+                          except:pass
+                      if line.startswith('max_rss_kb='):
+                          try:r['max_rss_kb']=int(line.split('=',1)[1])
+                          except:pass
+              rows.append(r)
+          if len(rows)!=7:
+              raise SystemExit(f'expected 7 result files, found {len(rows)}')
+          hashes={r.get('problem_sha256') for r in rows}
+          if None in hashes or len(hashes)!=1:
+              raise SystemExit(f'PAIRING FAILURE: problem hashes={hashes}')
+          order={'Depths-F_Ocean_Control_1.0':0,'DATA-MIND 1.0 Ocean prototype':1,
+                 'DATA-MIND 1.1 Ocean prototype':2,'Vampire':3,'E':4,'SPASS':5,'Prover9':6}
+          rows.sort(key=lambda r:order.get(r.get('solver',''),99))
+          summary={
+            'benchmark':'R01 tied Ocean held-out seven-way',
+            'Lstar_evaluator_only':5000000,
+            'evaluation_seed_evaluator_only':104729,
+            'calibration_seed':1729,
+            'problem_sha256':next(iter(hashes)),
+            'solver_outer_wall_limit_s':180,
+            'professional_internal_limit_s':150,
+            'data_mind_search_policy_paired':True,
+            'data_mind_1_1_policy_adaptation_enabled':False,
+            'rows':rows,
+          }
+          Path('seven_way_summary.json').write_text(json.dumps(summary,indent=2))
+          print(json.dumps(summary,indent=2))
+          print('\n| Solver | Status | Verified | Wall s | RSS GiB | Proof length | Expansions |')
+          print('|---|---:|---:|---:|---:|---:|---:|')
+          for r in rows:
+              wall=r.get('process_wall_s')
+              rss=r.get('max_rss_kb')
+              print(f"| {r.get('solver')} | {r.get('status')} | {r.get('certificate_verified')} | "
+                    f"{wall if wall is not None else ''} | "
+                    f"{round(rss/1024/1024,3) if rss is not None else ''} | "
+                    f"{r.get('proof_length') if r.get('proof_length') is not None else ''} | "
+                    f"{r.get('expansions') if r.get('expansions') is not None else ''} |")
+          PY
+
+      - name: Upload seven-way summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: ocean-L5M-seven-way-summary
+          path: seven_way_summary.json
+          if-no-files-found: error
+          retention-days: 90
