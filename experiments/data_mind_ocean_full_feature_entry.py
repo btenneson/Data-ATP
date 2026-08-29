@@ -2,12 +2,14 @@
 """Memory-safe/deterministic entrypoint for data_mind_ocean_full_feature.py.
 
 Registers dynamically loaded modules in sys.modules (needed by dataclasses in
-Predator 8.038) and discards the reverse adjacency returned by the frozen R01
-parser because this DATA-MIND search does not use it.  The positive input and
-forward graph are otherwise unchanged.
+Predator 8.038), discards the reverse adjacency returned by the frozen R01
+parser because this DATA-MIND search does not use it, and deep-freezes nested
+transaction payloads before hashing so later Learning updates cannot mutate a
+past transaction's logical contents.
 """
 from __future__ import annotations
 
+import copy
 import importlib.util
 from pathlib import Path
 import sys
@@ -45,7 +47,18 @@ def fixed_load_module(name: str, path: Path):
     return mod
 
 
+def frozen_emit(self, event_type, kind: str, **payload):
+    # TransactionLog correctly hashes what it is given, but it intentionally
+    # performs only a shallow payload copy. The adaptive 1.1 controller keeps
+    # mutating nested utility dictionaries after an event is emitted. Freeze a
+    # deep snapshot here so historical transaction contents are immutable.
+    body = copy.deepcopy({"kind": kind, **payload})
+    self.log.append(event_type, body)
+    self.counts[kind] += 1
+
+
 M.load_module = fixed_load_module
+M.Audit.emit = frozen_emit
 
 if __name__ == "__main__":
     M.main()
