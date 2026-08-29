@@ -1,0 +1,347 @@
+name: DATA-MIND Ocean L4M full-feature top-three
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/data-mind-ocean-L4M-full-feature-top3.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  R01_COMMIT: 953b0503b164cfc32ad939bef642d30781e6575e
+  P8038_COMMIT: 0e8110f6d4318c107454143b3cf43aa2cc500966
+
+jobs:
+  preflight:
+    name: Full-feature architecture preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Recover frozen Ocean source and Predator 8.038
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin "$R01_COMMIT"
+          mkdir -p "$RUNNER_TEMP/frozen"
+          git show "$R01_COMMIT:benchmarks/notald_ocean_r01/scripts/generate_tied_ocean_v1.py" > "$RUNNER_TEMP/frozen/generate.py"
+          git show "$R01_COMMIT:benchmarks/notald_ocean_r01/scripts/ocean_reference_controls.py" > "$RUNNER_TEMP/frozen/depths_f.py"
+          curl -fsSL \
+            "https://raw.githubusercontent.com/btenneson/ATP/$P8038_COMMIT/predator%208/recovered8_002/predator8_038_eight_agent_revision_fallback.py" \
+            -o "$RUNNER_TEMP/frozen/p8038.py"
+          sha256sum "$RUNNER_TEMP/frozen"/*.py
+
+      - name: Generate separate preflight Ocean case
+        shell: bash
+        run: |
+          set -euo pipefail
+          python "$RUNNER_TEMP/frozen/generate.py" \
+            --out "$RUNNER_TEMP/preflight" --depths 25000 --seeds 12345
+          P=$(find "$RUNNER_TEMP/preflight/solver_inputs/standard" -name '*.p' | head -1)
+          test -n "$P"
+          echo "PREFLIGHT_PROBLEM=$P" >> "$GITHUB_ENV"
+
+      - name: Exercise DATA-MIND 1.0 full adaptive path
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p preflight/onezero
+          PYTHONPATH="$GITHUB_WORKSPACE/src" python experiments/data_mind_ocean_full_feature_entry.py \
+            --version 1.0 --problem "$PREFLIGHT_PROBLEM" \
+            --reference benchmarks/ocean_reference/reference_solvers.py \
+            --out preflight/onezero/result.json \
+            --transactions preflight/onezero/transactions.jsonl \
+            --time-limit 60 --control-epoch 10000 --max-expansions 2000000 --seed 2301
+
+      - name: Exercise DATA-MIND 1.1 full adaptive/deliberative path
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p preflight/oneone
+          PYTHONPATH="$GITHUB_WORKSPACE/src" python experiments/data_mind_ocean_full_feature_entry.py \
+            --version 1.1 --problem "$PREFLIGHT_PROBLEM" \
+            --reference benchmarks/ocean_reference/reference_solvers.py \
+            --p8038 "$RUNNER_TEMP/frozen/p8038.py" \
+            --out preflight/oneone/result.json \
+            --transactions preflight/oneone/transactions.jsonl \
+            --time-limit 60 --control-epoch 10000 --max-expansions 2000000 --seed 2301
+
+      - name: Enforce non-lobotomized preflight invariants
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          a=json.loads(Path('preflight/onezero/result.json').read_text())
+          b=json.loads(Path('preflight/oneone/result.json').read_text())
+          assert a['certificate_verified'] and b['certificate_verified'], (a,b)
+          assert a['adaptive_search_enabled'] and a['creativity_enabled'] and a['revision_enabled']
+          assert b['adaptive_search_enabled'] and b['creativity_enabled'] and b['revision_enabled']
+          assert b['all_eight_agents_enabled']
+          assert b['agent_message_count'] >= 8, b
+          assert b['professor_events'] >= 1 and b['counselor_events'] >= 1 and b['learning_events'] >= 1, b
+          assert a['transaction_log_verified'] and b['transaction_log_verified']
+          assert a['bank_commit_verifier_gated'] and b['bank_commit_verifier_gated']
+          assert b['policy_adaptation_from_1_1_modules_enabled']
+          print('PRE-FLIGHT PASS: both DATA paths adaptive; 1.1 deliberation/professor/counselor/learning active')
+          PY
+
+      - name: Upload preflight evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ocean-L4M-full-feature-preflight
+          path: preflight/
+          if-no-files-found: warn
+          retention-days: 90
+
+  compare:
+    name: ${{ matrix.display }}
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        include:
+          - id: depths-f
+            display: Depths-F specialist
+            kind: depths
+          - id: data-mind-1.0
+            display: DATA-MIND 1.0 full-feature
+            kind: data
+            version: '1.0'
+          - id: data-mind-1.1
+            display: DATA-MIND 1.1 full-feature
+            kind: data
+            version: '1.1'
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Record runner resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "results/${{ matrix.id }}"
+          {
+            uname -a
+            free -h
+            python --version
+            git rev-parse HEAD
+          } | tee "results/${{ matrix.id }}/runner.txt"
+
+      - name: Recover frozen Ocean generator/Depths-F and P8.038
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin "$R01_COMMIT"
+          mkdir -p "$RUNNER_TEMP/frozen"
+          git show "$R01_COMMIT:benchmarks/notald_ocean_r01/scripts/generate_tied_ocean_v1.py" > "$RUNNER_TEMP/frozen/generate.py"
+          git show "$R01_COMMIT:benchmarks/notald_ocean_r01/scripts/ocean_reference_controls.py" > "$RUNNER_TEMP/frozen/depths_f.py"
+          curl -fsSL \
+            "https://raw.githubusercontent.com/btenneson/ATP/$P8038_COMMIT/predator%208/recovered8_002/predator8_038_eight_agent_revision_fallback.py" \
+            -o "$RUNNER_TEMP/frozen/p8038.py"
+          {
+            echo "R01_COMMIT=$R01_COMMIT"
+            echo "P8038_COMMIT=$P8038_COMMIT"
+            sha256sum "$RUNNER_TEMP/frozen"/*.py
+          } | tee "results/${{ matrix.id }}/frozen_sources.txt"
+
+      - name: Generate identical held-out L=4,000,000 Ocean input
+        shell: bash
+        run: |
+          set -euo pipefail
+          python "$RUNNER_TEMP/frozen/generate.py" \
+            --out "$RUNNER_TEMP/eval" --depths 4000000 --seeds 314159
+          P=$(find "$RUNNER_TEMP/eval/solver_inputs/standard" -name '*.p' | head -1)
+          test -n "$P"
+          echo "PROBLEM=$P" >> "$GITHUB_ENV"
+          sha256sum "$P" | tee "results/${{ matrix.id }}/problem_sha256.txt"
+          stat -c 'input_bytes=%s' "$P" | tee -a "results/${{ matrix.id }}/problem_sha256.txt"
+          # Evaluator-only audit. No solver command receives this file or these values.
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          key=json.loads((Path(os.environ['RUNNER_TEMP'])/'eval/evaluator_only/answer_key.json').read_text())
+          row=key[0]
+          assert row['Lstar']==4000000 and row['seed']==314159 and row['bfs_verified_Lstar']==4000000
+          print('evaluator audit: held-out seed=314159 L*=4000000 BFS_OK')
+          PY
+
+      - name: Run Depths-F naturally, one-hour hard ceiling
+        if: matrix.kind == 'depths'
+        shell: bash
+        run: |
+          set +e
+          OUT="results/${{ matrix.id }}"
+          /usr/bin/time -f 'process_wall_s=%e\nmax_rss_kb=%M' -o "$OUT/process_time.txt" \
+            timeout 3600s python "$RUNNER_TEMP/frozen/depths_f.py" \
+              --solver depths-f --problem "$PROBLEM" \
+              --out "$OUT/native_result.json" --cert "$OUT/certificate.txt"
+          RC=$?
+          python - "$OUT" "$PROBLEM" "$RC" <<'PY'
+          import hashlib,json,sys
+          from pathlib import Path
+          out=Path(sys.argv[1]); p=Path(sys.argv[2]); rc=int(sys.argv[3])
+          def h(path):
+              x=hashlib.sha256()
+              with path.open('rb') as f:
+                  for b in iter(lambda:f.read(1024*1024),b''): x.update(b)
+              return x.hexdigest()
+          native={}
+          if (out/'native_result.json').exists(): native=json.loads((out/'native_result.json').read_text())
+          result={
+            'solver':'Depths-F_Ocean_Control_1.0',
+            'status':native.get('status','TIMEOUT' if rc==124 else 'FAULT'),
+            'certificate_verified':native.get('certificate_verified',False),
+            'proof_length':native.get('proof_length'),
+            'expansions':native.get('expansions'),
+            'solver_internal_wall_s':native.get('wall_s_internal'),
+            'returncode':rc,
+            'problem_sha256':h(p),
+            'specialist_for_ocean':True,
+            'one_hour_hard_ceiling_s':3600,
+            'hidden_metadata_read':False,
+          }
+          (out/'result.json').write_text(json.dumps(result,indent=2))
+          print(json.dumps(result,indent=2))
+          PY
+          exit 0
+
+      - name: Run DATA-MIND naturally, one-hour hard ceiling
+        if: matrix.kind == 'data'
+        shell: bash
+        run: |
+          set +e
+          OUT="results/${{ matrix.id }}"
+          /usr/bin/time -f 'process_wall_s=%e\nmax_rss_kb=%M' -o "$OUT/process_time.txt" \
+            timeout 3600s env PYTHONPATH="$GITHUB_WORKSPACE/src" \
+            python experiments/data_mind_ocean_full_feature_entry.py \
+              --version '${{ matrix.version }}' \
+              --problem "$PROBLEM" \
+              --reference benchmarks/ocean_reference/reference_solvers.py \
+              --p8038 "$RUNNER_TEMP/frozen/p8038.py" \
+              --out "$OUT/result.json" \
+              --transactions "$OUT/transactions.jsonl" \
+              --time-limit 3540 \
+              --max-expansions 100000000 \
+              --control-epoch 50000 \
+              --seed 2301
+          RC=$?
+          if [ ! -f "$OUT/result.json" ]; then
+            python - "$OUT" "$PROBLEM" "$RC" '${{ matrix.version }}' <<'PY'
+          import hashlib,json,sys
+          from pathlib import Path
+          out=Path(sys.argv[1]); p=Path(sys.argv[2]); rc=int(sys.argv[3]); v=sys.argv[4]
+          x=hashlib.sha256()
+          with p.open('rb') as f:
+              for b in iter(lambda:f.read(1024*1024),b''): x.update(b)
+          result={
+            'solver':f'DATA-MIND {v} Ocean full-feature experimental adapter',
+            'status':'TIMEOUT' if rc==124 else ('RESOURCE_FAILURE' if rc in (137,143) else 'FAULT'),
+            'certificate_verified':False,
+            'returncode':rc,
+            'problem_sha256':x.hexdigest(),
+            'one_hour_hard_ceiling_s':3600,
+          }
+          (out/'result.json').write_text(json.dumps(result,indent=2))
+          PY
+          fi
+          cat "$OUT/result.json"
+          exit 0
+
+      - name: Upload solver evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ocean-L4M-full-${{ matrix.id }}
+          path: results/${{ matrix.id }}/
+          if-no-files-found: error
+          retention-days: 90
+
+  summarize:
+    name: Full-feature top-three summary
+    needs: compare
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Download evidence
+        uses: actions/download-artifact@v4
+        with:
+          pattern: ocean-L4M-full-*
+          path: all_results
+          merge-multiple: false
+
+      - name: Verify pairing and summarize
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          rows=[]
+          for rp in sorted(Path('all_results').glob('ocean-L4M-full-*/result.json')):
+              r=json.loads(rp.read_text())
+              pt=rp.parent/'process_time.txt'
+              if pt.exists():
+                  for line in pt.read_text(errors='replace').splitlines():
+                      if line.startswith('process_wall_s='):
+                          try:r['process_wall_s']=float(line.split('=',1)[1])
+                          except:pass
+                      elif line.startswith('max_rss_kb='):
+                          try:r['max_rss_kb']=int(line.split('=',1)[1])
+                          except:pass
+              rows.append(r)
+          if len(rows)!=3:
+              raise SystemExit(f'expected 3 result files, got {len(rows)}')
+          hashes={r.get('problem_sha256') for r in rows}
+          if None in hashes or len(hashes)!=1:
+              raise SystemExit(f'PAIRING FAILURE hashes={hashes}')
+          order={'Depths-F_Ocean_Control_1.0':0,
+                 'DATA-MIND 1.0 Ocean full-feature experimental adapter':1,
+                 'DATA-MIND 1.1 Ocean full-feature experimental adapter':2}
+          rows.sort(key=lambda r:order.get(r.get('solver',''),99))
+          summary={
+            'benchmark':'R01 tied Ocean full-feature top-three',
+            'Lstar_evaluator_only':4000000,
+            'evaluation_seed_evaluator_only':314159,
+            'problem_sha256':next(iter(hashes)),
+            'hard_wall_ceiling_per_solver_s':3600,
+            'stop_on_verified_settlement':True,
+            'data_mind_search_policy_frozen':False,
+            'data_mind_1_1_extra_modules_allowed_to_change_search':True,
+            'rows':rows,
+          }
+          Path('top3_summary.json').write_text(json.dumps(summary,indent=2))
+          print(json.dumps(summary,indent=2))
+          print('\n| Solver | Status | Verified | Wall s | RSS GiB | Proof length | Expansions | Switches |')
+          print('|---|---:|---:|---:|---:|---:|---:|---:|')
+          for r in rows:
+              wall=r.get('process_wall_s'); rss=r.get('max_rss_kb')
+              print(f"| {r.get('solver')} | {r.get('status')} | {r.get('certificate_verified')} | "
+                    f"{wall if wall is not None else ''} | "
+                    f"{round(rss/1024/1024,3) if rss is not None else ''} | "
+                    f"{r.get('proof_length') if r.get('proof_length') is not None else ''} | "
+                    f"{r.get('expansions') if r.get('expansions') is not None else ''} | "
+                    f"{r.get('controller_switch_count') if r.get('controller_switch_count') is not None else ''} |")
+          PY
+
+      - name: Upload summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: ocean-L4M-full-feature-top3-summary
+          path: top3_summary.json
+          if-no-files-found: error
+          retention-days: 90
