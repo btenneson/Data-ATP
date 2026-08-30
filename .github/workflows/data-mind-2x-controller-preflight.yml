@@ -1,0 +1,112 @@
+name: DATA-MIND 2.x controller regression preflight
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'experiments/data_mind_2_2_2_3_actual_knob_controller.py'
+      - '.github/workflows/data-mind-2x-controller-preflight.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ATP_COMMIT: ad2300ab1a47119f93f3417bc52c348f87e57c62
+  ADAPTER: experiments/data_mind_2_2_2_3_actual_knob_controller.py
+
+jobs:
+  preflight:
+    name: Compile and exercise adult/child invariants
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: btenneson/ATP
+          ref: ${{ env.ATP_COMMIT }}
+          path: upstream_atp
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Compile pinned implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYTHONPATH="$GITHUB_WORKSPACE/src" python -m py_compile \
+            "$ADAPTER" src/data_atp/events.py \
+            'upstream_atp/predator 8/predator 8.006-R3I4-strategy-switch.py' \
+            'upstream_atp/predator 8/predator 8.007-R3I4-dvcoherent-imagination.py'
+
+      - name: Simulate controller state machine
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYTHONPATH="$GITHUB_WORKSPACE/src" python - <<'PY'
+          import importlib.util, pathlib, sys, tempfile
+          from data_atp.events import TransactionLog
+
+          root=pathlib.Path.cwd()
+          apath=root/'experiments/data_mind_2_2_2_3_actual_knob_controller.py'
+          spec=importlib.util.spec_from_file_location('dm2x',apath)
+          mod=importlib.util.module_from_spec(spec); sys.modules[spec.name]=mod; spec.loader.exec_module(mod)
+          kernel=mod.load_module('dm2x_preflight_kernel',root/'upstream_atp/predator 8/predator 8.007-R3I4-dvcoherent-imagination.py')
+
+          for version in ('2.2','2.3'):
+              log=TransactionLog(pathlib.Path(tempfile.mkdtemp())/f'{version}.jsonl')
+              c=mod.ActualKnobController(version=version,base6=kernel.BASE6,log=log)
+              mod._selftest_controller(c)
+              assert set(c.decode_vector()) == set(mod.KNOBS)
+
+          log=TransactionLog(pathlib.Path(tempfile.mkdtemp())/'child.jsonl')
+          c=mod.ActualKnobController(version='2.3',base6=kernel.BASE6,log=log,
+                                     control_interval=250,adult_failure_stale=6000,
+                                     child_trial_expansions=12000,child_cooldown_expansions=12000)
+          c.begin_agent('preflight')
+          start=None
+          for i in range(1,24):
+              exp=250*i
+              action=c.sample(exp=exp,live_rhat=1.1,stale=6000+i*250,dup_rate=.2,
+                              terminal_rejects=0,frontier_size=1000,
+                              imagined_total=100*i,imagined_previous=100*(i-1),
+                              remaining_budget=100000-exp)
+              if action == 'START_CHILD':
+                  start=exp; break
+          assert start is not None, 'child did not start after demonstrated adult failure'
+          checkpoint=dict(c.child_checkpoint_u)
+          result=None
+          last_exp=start
+          for exp in range(start+250,start+12500,250):
+              last_exp=exp
+              result=c.sample(exp=exp,live_rhat=1.1,stale=7000+(exp-start),dup_rate=.2,
+                              terminal_rejects=0,frontier_size=1000,
+                              imagined_total=1000+(exp-start),imagined_previous=750+(exp-start),
+                              remaining_budget=100000-exp)
+              if result == 'ROLLBACK_CHILD': break
+          assert result == 'ROLLBACK_CHILD', 'failed inverse trial did not request rollback'
+          c.rollback_child(exp=last_exp)
+          assert c.mode == 'ADULT'
+          assert all(abs(c.u[k]-checkpoint[k]) < 1e-12 for k in mod.KNOBS)
+          assert c.cooldown_until_exp >= last_exp + 12000
+
+          # During cooldown the same bad conditions may persist, but a second
+          # child intervention must not occur.
+          for exp in range(last_exp+250,last_exp+12000,250):
+              action=c.sample(exp=exp,live_rhat=1.1,stale=20000,dup_rate=.3,
+                              terminal_rejects=0,frontier_size=1000,
+                              imagined_total=5000,imagined_previous=4900,
+                              remaining_budget=100000-exp)
+              assert action != 'START_CHILD', 'consecutive child intervention occurred inside cooldown'
+
+          print('DATA-MIND 2.x regression preflight: passed')
+          PY
+
+      - name: Record exact hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum "$ADAPTER" \
+            'upstream_atp/predator 8/predator 8.006-R3I4-strategy-switch.py' \
+            'upstream_atp/predator 8/predator 8.007-R3I4-dvcoherent-imagination.py'
