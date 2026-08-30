@@ -1,0 +1,353 @@
+name: DATA-MIND 1.2 vs 1.3 — Dreamer 14 sgrpcl 6h
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/data-mind-1-2-vs-1-3-sgrpcl-6h.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ATP_COMMIT: ad2300ab1a47119f93f3417bc52c348f87e57c62
+  SETMM_COMMIT: cd577894d8e6bf8b4fe8014c0d525d531507e4b7
+  SETMM_SHA256: 1016d7edb0508abde0fe240bb5243e588c5067f8cb10ee6e1cc5733fc05acdb5
+  TARGET: sgrpcl
+  BUDGET: '300000'
+  SEED: '2301'
+  WALL_SECONDS: '21600'
+  ADAPTER: experiments/data_mind_1_2_1_3_dreamer14.py
+  DREAMER: experiments/dreamer14_sic_simulation.py
+  CONTROL_INTERVAL: '250'
+  ADULT_STEP: '0.025'
+  ADULT_FAILURE_STALE: '6000'
+  CHILD_TRIAL_EXPANSIONS: '12000'
+  CHILD_COOLDOWN_EXPANSIONS: '12000'
+
+jobs:
+  preflight:
+    name: Dreamer 14 + exact-group readiness
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: btenneson/ATP
+          ref: ${{ env.ATP_COMMIT }}
+          path: upstream_atp
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Compile controller lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYTHONPATH="$GITHUB_WORKSPACE/src" python -m py_compile \
+            experiments/data_mind_2_2_2_3_actual_knob_controller.py \
+            experiments/data_mind_2_2_2_3_actual_knob_controller_v2.py \
+            "$DREAMER" "$ADAPTER" \
+            src/data_atp/events.py \
+            'upstream_atp/predator 8/predator 8.006-R3I4-strategy-switch.py' \
+            'upstream_atp/predator 8/predator 8.007-R3I4-dvcoherent-imagination.py'
+
+      - name: Exercise Dreamer 14 and both public versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYTHONPATH="$GITHUB_WORKSPACE/src" python - <<'PY'
+          import importlib.util, pathlib, sys, tempfile
+          from data_atp.events import TransactionLog
+
+          root=pathlib.Path.cwd()
+          path=root/'experiments/data_mind_1_2_1_3_dreamer14.py'
+          spec=importlib.util.spec_from_file_location('dm13pre',path)
+          mod=importlib.util.module_from_spec(spec); sys.modules[spec.name]=mod; spec.loader.exec_module(mod)
+          kernel=mod.BASE.load_module('dm13pre_kernel',root/'upstream_atp/predator 8/predator 8.007-R3I4-dvcoherent-imagination.py')
+
+          for internal,public in (('2.2','1.2'),('2.3','1.3')):
+              log=TransactionLog(pathlib.Path(tempfile.mkdtemp())/f'{public}.jsonl')
+              c=mod.DreamerIntegratedController(
+                  version=internal, base6=kernel.BASE6, log=log,
+                  control_interval=250, adult_failure_stale=6000,
+                  child_trial_expansions=12000, child_cooldown_expansions=12000,
+              )
+              mod.dreamer_selftest(c)
+              s=c.summary()
+              assert s['version']==public
+              assert s['dreamer14_enabled'] is True
+              assert s['dreamer14']['awareness_initial']==[5.0,5.0]
+              assert s['dreamer14']['awareness_independent_of_other_modules'] is True
+              inv=s['dreamer14']['last_inverse_witness']
+              assert inv is not None
+              assert inv['simulation_kind']=='bounded_clocked_counterfactual_SIC'
+              assert inv['clock_map'] and inv['simulation_error_bound'] >= 0
+              assert inv['may_change_live_knobs'] is False
+              assert inv['may_verify'] is False
+              assert inv['may_commit_bank'] is False
+              assert inv['simulated_halt_is_not_real_halt'] is True
+
+          print('DATA-MIND 1.2/1.3 Dreamer 14 preflight: PASSED')
+          PY
+
+      - name: Record exact source hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum \
+            "$DREAMER" "$ADAPTER" \
+            experiments/data_mind_2_2_2_3_actual_knob_controller_v2.py \
+            'upstream_atp/predator 8/predator 8.006-R3I4-strategy-switch.py' \
+            'upstream_atp/predator 8/predator 8.007-R3I4-dvcoherent-imagination.py'
+
+  compare:
+    name: DATA-MIND ${{ matrix.version }} — sgrpcl — 6h
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 375
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include:
+          - version: '1.2'
+            id: data-mind-1.2
+          - version: '1.3'
+            id: data-mind-1.3
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: btenneson/ATP
+          ref: ${{ env.ATP_COMMIT }}
+          path: upstream_atp
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Freeze environment and protocol
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="results/${{ matrix.id }}"
+          mkdir -p "$OUT"
+          curl -L --retry 3 --fail -o 'upstream_atp/predator 8/set.mm' \
+            "https://raw.githubusercontent.com/metamath/set.mm/$SETMM_COMMIT/set.mm"
+          test "$(sha256sum 'upstream_atp/predator 8/set.mm' | awk '{print $1}')" = "$SETMM_SHA256"
+          {
+            echo "target=$TARGET"
+            echo "version=${{ matrix.version }}"
+            echo "budget=$BUDGET"
+            echo "seed=$SEED"
+            echo "wall_seconds=$WALL_SECONDS"
+            echo "atp_commit=$ATP_COMMIT"
+            echo "data_atp_commit=$(git rev-parse HEAD)"
+            echo "dreamer14=true"
+            echo "dreamer_awareness_initial=(5,5)"
+            echo "dreamer_awareness_independent=true"
+            echo "dreamer_clocked_SIC_simulation=true"
+            echo "dreamer_quotient_simulation=true"
+            echo "dreamer_lipschitz_error_calibration=true"
+            echo "dreamer_simulated_halt_not_real_halt=true"
+            echo "dreamer_no_verifier_or_bank_authority=true"
+            echo "adult_controller_identical_between_arms=true"
+            echo "control_interval=$CONTROL_INTERVAL"
+            echo "adult_step=$ADULT_STEP"
+            echo "adult_failure_stale=$ADULT_FAILURE_STALE"
+            echo "child_trial_expansions=$CHILD_TRIAL_EXPANSIONS"
+            echo "child_cooldown_expansions=$CHILD_COOLDOWN_EXPANSIONS"
+            echo "child_inverse_enabled=$([[ '${{ matrix.version }}' == '1.3' ]] && echo true || echo false)"
+            echo "controlled_difference=1.3 alone has reversible inverse child authority"
+            sha256sum "$DREAMER" "$ADAPTER" \
+              experiments/data_mind_2_2_2_3_actual_knob_controller_v2.py \
+              'upstream_atp/predator 8/predator 8.007-R3I4-dvcoherent-imagination.py'
+          } | tee "$OUT/protocol.txt"
+          { uname -a; free -h; python --version; } | tee "$OUT/runner.txt"
+
+      - name: Run DATA-MIND search
+        shell: bash
+        run: |
+          set +e
+          set -uo pipefail
+          OUT="results/${{ matrix.id }}"
+          /usr/bin/time -f 'process_wall_s=%e\nmax_rss_kb=%M' -o "$OUT/process_time.txt" \
+            timeout "$WALL_SECONDS" env PYTHONPATH="$GITHUB_WORKSPACE/src" \
+              python -u "$ADAPTER" \
+                --version '${{ matrix.version }}' \
+                --atp-root "$GITHUB_WORKSPACE/upstream_atp" \
+                --setmm "$GITHUB_WORKSPACE/upstream_atp/predator 8/set.mm" \
+                --target "$TARGET" \
+                --budget "$BUDGET" \
+                --max-depth 12 \
+                --agents 4 \
+                --creativity 0.55 \
+                --seed "$SEED" \
+                --opener-cap 48 \
+                --max-open 8 \
+                --progress 250 \
+                --control-interval "$CONTROL_INTERVAL" \
+                --adult-step "$ADULT_STEP" \
+                --adult-failure-stale "$ADULT_FAILURE_STALE" \
+                --child-trial-expansions "$CHILD_TRIAL_EXPANSIONS" \
+                --child-cooldown-expansions "$CHILD_COOLDOWN_EXPANSIONS" \
+                --out "$OUT/candidate.mm" \
+                --transactions "$OUT/transactions.jsonl" \
+                --summary "$OUT/pre_external_summary.json" \
+            2>&1 | tee "$OUT/search.log"
+          RC=${PIPESTATUS[0]}
+          echo "returncode=$RC" > "$OUT/run_status.txt"
+          exit 0
+
+      - name: Independent contextual Metamath verification
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          set -o pipefail
+          OUT="results/${{ matrix.id }}"
+          if [ ! -s "$OUT/candidate.mm" ]; then
+            echo 'No candidate certificate emitted.' | tee "$OUT/external_cv.log"
+            echo 'returncode=2' > "$OUT/external_cv_status.txt"
+            exit 0
+          fi
+          python - "$OUT" "$TARGET" <<'PY' 2>&1 | tee "$OUT/external_cv.log"
+          import re, sys
+          from pathlib import Path
+          out=Path(sys.argv[1]); target=sys.argv[2]
+          env_path=Path('upstream_atp/predator 8/set.mm')
+          env=env_path.read_text(encoding='utf-8')
+          cand=(out/'candidate.mm').read_text(encoding='utf-8')
+          proofs=list(re.finditer(r'\$=\s*(.*?)\s*\$\.', cand, re.S))
+          if len(proofs)!=1: raise SystemExit(f'expected one candidate proof, found {len(proofs)}')
+          proof=proofs[0].group(1).strip()
+          if not proof: raise SystemExit('empty candidate proof')
+          pat=re.compile(rf'(?ms)(^[ \t]*{re.escape(target)}[ \t]+\$p\b.*?\$=\s*)(.*?)(\s*\$\.)')
+          ms=list(pat.finditer(env))
+          if len(ms)!=1: raise SystemExit(f'expected one target theorem, found {len(ms)}')
+          m=ms[0]
+          patched=env[:m.start(2)] + proof + env[m.end(2):]
+          (out/'candidate_context.mm').write_text(patched, encoding='utf-8')
+          print('contextual verification preparation: OK')
+          print('candidate_proof_tokens=',len(proof.split()))
+          PY
+          PREP=${PIPESTATUS[0]}
+          if [ "$PREP" -ne 0 ]; then
+            echo "returncode=$PREP" > "$OUT/external_cv_status.txt"
+            exit 0
+          fi
+          python -u upstream_atp/metamath.py verify "$OUT/candidate_context.mm" \
+            2>&1 | tee -a "$OUT/external_cv.log"
+          RC=${PIPESTATUS[0]}
+          echo "returncode=$RC" > "$OUT/external_cv_status.txt"
+          exit 0
+
+      - name: Finalize verifier-gated BANK record
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="results/${{ matrix.id }}"
+          PYTHONPATH="$GITHUB_WORKSPACE/src" python - "$OUT" '${{ matrix.version }}' <<'PY'
+          import json,re,sys
+          from pathlib import Path
+          from data_atp.events import EventType, TransactionLog
+          out=Path(sys.argv[1]); version=sys.argv[2]
+          pre=json.loads((out/'pre_external_summary.json').read_text()) if (out/'pre_external_summary.json').exists() else {}
+          run_text=(out/'run_status.txt').read_text() if (out/'run_status.txt').exists() else ''
+          cv_text=(out/'external_cv_status.txt').read_text() if (out/'external_cv_status.txt').exists() else ''
+          run_m=re.search(r'returncode=(\d+)',run_text); cv_m=re.search(r'returncode=(\d+)',cv_text)
+          run_rc=int(run_m.group(1)) if run_m else None; cv_rc=int(cv_m.group(1)) if cv_m else None
+          candidate=(out/'candidate.mm').exists() and (out/'candidate.mm').stat().st_size>0
+          verified=bool(candidate and cv_rc==0)
+          log=TransactionLog(out/'transactions.jsonl')
+          if candidate and verified:
+              log.append(EventType.VERIFIER_ACCEPTED,{'kind':'independent_verifier_result','target':'sgrpcl','accepted':True,'authority':'external_sovereign_verifier'})
+              log.append(EventType.ACTION_EXECUTED,{'kind':'bank_commit','target':'sgrpcl','gate':'independent_verifier_accepted'})
+          elif candidate:
+              log.append(EventType.VERIFIER_REJECTED,{'kind':'independent_verifier_result','target':'sgrpcl','accepted':False,'external_returncode':cv_rc,'authority':'external_sovereign_verifier'})
+              log.append(EventType.ACTION_REJECTED,{'kind':'bank_reject','target':'sgrpcl','gate':'independent_verifier_rejected'})
+          else:
+              log.append(EventType.SELF_REPORT_FILED,{'kind':'no_candidate','target':'sgrpcl','run_returncode':run_rc})
+          if verified: status='PROVED'
+          elif candidate: status='VERIFIER_REJECTED'
+          elif run_rc==124: status='TIMEOUT'
+          elif run_rc==1: status='BOUNDED_UNKNOWN'
+          else: status='NO_VERIFIED_CERTIFICATE'
+          result=dict(pre)
+          result.update({
+              'solver':f'DATA-MIND {version}', 'version':version,
+              'target':'sgrpcl','status':status,
+              'certificate_verified':verified,'candidate_emitted':candidate,
+              'run_returncode':run_rc,'independent_context_verifier_returncode':cv_rc,
+              'transaction_log_verified':log.verify(),'bank_commit_written':verified,
+              'bank_commit_verifier_gated':True,'scientific_endpoint_met':verified,
+              'budget':300000,'seed':2301,'wall_seconds':21600,
+              'dreamer14_enabled':True,
+              'dreamer14_identical_between_arms':True,
+              'dreamer_awareness_initial':[5,5],
+              'child_inverse_enabled':version=='1.3',
+              'controlled_difference':'1.3 alone has reversible group-inverse child authority',
+              'atp_commit':'ad2300ab1a47119f93f3417bc52c348f87e57c62',
+          })
+          if (out/'process_time.txt').exists():
+              for line in (out/'process_time.txt').read_text(errors='replace').splitlines():
+                  if line.startswith('process_wall_s='):
+                      try: result['process_wall_s']=float(line.split('=',1)[1])
+                      except: pass
+                  if line.startswith('max_rss_kb='):
+                      try: result['max_rss_kb']=int(line.split('=',1)[1])
+                      except: pass
+          (out/'result.json').write_text(json.dumps(result,indent=2)+'\n')
+          print(json.dumps(result,indent=2))
+          if not log.verify(): raise SystemExit('transaction log failed')
+          PY
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: data-mind-dreamer14-sgrpcl-${{ matrix.version }}-${{ github.run_id }}
+          path: results/${{ matrix.id }}/
+          if-no-files-found: error
+          retention-days: 90
+
+  summarize:
+    name: DATA-MIND 1.2 vs 1.3 Dreamer 14 paired summary
+    needs: compare
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: data-mind-dreamer14-sgrpcl-*-${{ github.run_id }}
+          path: all_results
+      - name: Build paired summary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          rows=[json.loads(p.read_text()) for p in sorted(Path('all_results').rglob('result.json'))]
+          by={r.get('version'):r for r in rows}
+          out={
+              'target':'sgrpcl',
+              'wall_seconds_per_arm':21600,
+              'shared_dreamer14':True,
+              'dreamer_awareness_initial':[5,5],
+              'controlled_difference':'1.3 alone has reversible group-inverse child authority',
+              'data_mind_1_2':by.get('1.2'),
+              'data_mind_1_3':by.get('1.3'),
+          }
+          Path('paired_summary.json').write_text(json.dumps(out,indent=2)+'\n')
+          print(json.dumps(out,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: data-mind-dreamer14-sgrpcl-paired-${{ github.run_id }}
+          path: paired_summary.json
+          retention-days: 90
