@@ -1,0 +1,180 @@
+name: DATA-MIND 2.2/2.3 tightened readiness
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'experiments/data_mind_2_2_2_3_actual_knob_controller.py'
+      - 'experiments/data_mind_2_2_2_3_actual_knob_controller_v2.py'
+      - '.github/workflows/data-mind-2x-v2-readiness.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ATP_COMMIT: ad2300ab1a47119f93f3417bc52c348f87e57c62
+
+jobs:
+  readiness:
+    name: Exact-group and child-control readiness
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: btenneson/ATP
+          ref: ${{ env.ATP_COMMIT }}
+          path: upstream_atp
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Compile controller lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYTHONPATH="$GITHUB_WORKSPACE/src" python -m py_compile \
+            experiments/data_mind_2_2_2_3_actual_knob_controller.py \
+            experiments/data_mind_2_2_2_3_actual_knob_controller_v2.py \
+            src/data_atp/events.py \
+            'upstream_atp/predator 8/predator 8.006-R3I4-strategy-switch.py' \
+            'upstream_atp/predator 8/predator 8.007-R3I4-dvcoherent-imagination.py'
+
+      - name: Exercise exact group, logging, rollback and sustained acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYTHONPATH="$GITHUB_WORKSPACE/src" python - <<'PY'
+          import importlib.util
+          import json
+          import math
+          from pathlib import Path
+          import sys
+          import tempfile
+
+          root = Path.cwd()
+          wrapper = root/'experiments/data_mind_2_2_2_3_actual_knob_controller_v2.py'
+          spec = importlib.util.spec_from_file_location('dm2xv2', wrapper)
+          mod = importlib.util.module_from_spec(spec)
+          sys.modules[spec.name] = mod
+          spec.loader.exec_module(mod)
+          kernel = mod.BASE.load_module(
+              'dm2x_v2_preflight_kernel',
+              root/'upstream_atp/predator 8/predator 8.007-R3I4-dvcoherent-imagination.py'
+          )
+          from data_atp.events import TransactionLog
+
+          def controller(version):
+              log_path = Path(tempfile.mkdtemp())/f'{version}.jsonl'
+              log = TransactionLog(log_path)
+              c = mod.ExactGroupActualKnobController(
+                  version=version,
+                  base6=kernel.BASE6,
+                  log=log,
+                  control_interval=250,
+                  adult_failure_stale=6000,
+                  child_trial_expansions=12000,
+                  child_cooldown_expansions=12000,
+              )
+              mod.exact_selftest(c)
+              return c, log_path
+
+          # Both arms use the same exact latent group and decode endpoints.
+          c22, log22 = controller('2.2')
+          c23, log23 = controller('2.3')
+          assert c22.base_u == c23.base_u
+          for key in mod.KNOBS:
+              u = c23.u[key]
+              inv = c23.inverse_vector()[key]
+              assert 0.0 < u < 1.0 and 0.0 < inv < 1.0
+              assert math.isclose(mod.logit_group_compose(u, inv), .5, abs_tol=1e-12)
+
+          # Adult updates must expose latent motion even if an integer execution
+          # knob has not rounded to a different value yet.
+          c22.begin_agent('logging')
+          c22.sample(
+              exp=250, live_rhat=1.2, stale=250, dup_rate=.15,
+              terminal_rejects=0, frontier_size=1000,
+              imagined_total=200, imagined_previous=0,
+              remaining_budget=100000,
+          )
+          records = [json.loads(x) for x in log22.read_text().splitlines()]
+          adult = [r for r in records if r['payload'].get('kind') == 'adult_knob_update'][-1]
+          p = adult['payload']
+          for field in ('latent_before','latent_after','latent_delta','executed_before','executed_after'):
+              assert field in p, field
+          assert any(abs(float(v)) > 0 for v in p['latent_delta'].values())
+
+          def start_child(c, baseline_dup=.30):
+              c.begin_agent('child-test')
+              start = None
+              for i in range(1, 30):
+                  exp = 250*i
+                  action = c.sample(
+                      exp=exp, live_rhat=1.1, stale=6000+250*i,
+                      dup_rate=baseline_dup, terminal_rejects=0,
+                      frontier_size=1000, imagined_total=100*i,
+                      imagined_previous=100*(i-1), remaining_budget=100000-exp,
+                  )
+                  if action == 'START_CHILD':
+                      start = exp
+                      break
+              assert start is not None, 'child did not start after demonstrated adult failure'
+              return start, dict(c.child_checkpoint_u)
+
+          # A single lucky final sample must NOT save an otherwise failed child trial.
+          c_fail, _ = controller('2.3')
+          start, checkpoint = start_child(c_fail, baseline_dup=.30)
+          result = None
+          end = start
+          for step, exp in enumerate(range(start+250, start+12250, 250), start=1):
+              end = exp
+              lucky_final = exp >= start+12000
+              result = c_fail.sample(
+                  exp=exp, live_rhat=1.1, stale=7000+(exp-start),
+                  dup_rate=(0.0 if lucky_final else .30),
+                  terminal_rejects=0, frontier_size=1000,
+                  imagined_total=5000+100*step,
+                  imagined_previous=5000+100*(step-1),
+                  remaining_budget=100000-exp,
+              )
+              if result in {'ROLLBACK_CHILD','ACCEPT_CHILD'}:
+                  break
+          assert result == 'ROLLBACK_CHILD', f'one lucky final sample incorrectly gave {result}'
+          c_fail.rollback_child(exp=end)
+          assert c_fail.mode == 'ADULT'
+          assert all(math.isclose(c_fail.u[k], checkpoint[k], abs_tol=1e-12) for k in mod.KNOBS)
+          assert c_fail.cooldown_until_exp >= end + 12000
+
+          # Sustained improvement across the terminal rolling window may be accepted.
+          c_good, _ = controller('2.3')
+          start, _checkpoint = start_child(c_good, baseline_dup=.45)
+          result = None
+          for step, exp in enumerate(range(start+250, start+12250, 250), start=1):
+              result = c_good.sample(
+                  exp=exp, live_rhat=1.1, stale=7000+(exp-start),
+                  dup_rate=0.0, terminal_rejects=0,
+                  frontier_size=50, imagined_total=5000+10*step,
+                  imagined_previous=5000+10*(step-1),
+                  remaining_budget=100000-exp,
+              )
+              if result in {'ROLLBACK_CHILD','ACCEPT_CHILD'}:
+                  break
+          assert result == 'ACCEPT_CHILD', f'sustained quality improvement gave {result}'
+          assert c_good.child_accepts == 1
+          assert c_good.child_rollbacks == 0
+
+          print('DATA-MIND 2.2/2.3 tightened readiness: PASSED')
+          PY
+
+      - name: Record exact source hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum \
+            experiments/data_mind_2_2_2_3_actual_knob_controller.py \
+            experiments/data_mind_2_2_2_3_actual_knob_controller_v2.py \
+            'upstream_atp/predator 8/predator 8.006-R3I4-strategy-switch.py' \
+            'upstream_atp/predator 8/predator 8.007-R3I4-dvcoherent-imagination.py'
