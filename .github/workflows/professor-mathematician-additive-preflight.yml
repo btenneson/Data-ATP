@@ -1,0 +1,71 @@
+name: Professor + Mathematician additive preflight
+
+on:
+  push:
+    branches: [professor-wiring-v2]
+    paths:
+      - 'src/data_atp/professor.py'
+      - 'src/data_atp/professor_overlay.py'
+      - '.github/workflows/professor-mathematician-additive-preflight.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile additive modules
+        run: |
+          python -m py_compile src/data_atp/professor.py src/data_atp/professor_overlay.py
+      - name: Verify bounded Professor contract
+        env:
+          PYTHONPATH: src
+        run: |
+          python - <<'PY'
+          from data_atp.professor import BoundedProfessor
+
+          neutral = BoundedProfessor(enabled=True)
+          s = neutral.grade({'x': 1})
+          assert s.informative is False
+          assert s.credit == 0.5 and s.objective_h == 0.5
+
+          prof = BoundedProfessor(progress_oracle=lambda state: (0.8, 0.2), penalty_weight=1.0)
+          s = prof.grade({'x': 1})
+          assert s.informative is True
+          assert 0.0 <= s.credit <= 1.0
+          assert 0.0 <= s.objective_h <= 1.0
+          assert abs((s.credit + s.objective_h) - 1.0) < 1e-12
+          assert abs(s.credit - 0.8) < 1e-12
+          print('bounded Professor contract: OK')
+          PY
+      - name: Verify Mathematician is augmented, not replaced
+        env:
+          PYTHONPATH: src
+        run: |
+          python - <<'PY'
+          from data_atp.professor import BoundedProfessor
+          from data_atp.professor_overlay import ProfessorStateMixin
+
+          class ExistingMathematician:
+              def state_signature(self, **kwargs):
+                  return {'mathematician_state': 7, 'quality': 0.25}
+
+          class Combined(ProfessorStateMixin, ExistingMathematician):
+              pass
+
+          c = Combined()
+          c.install_professor(BoundedProfessor(progress_oracle=lambda state: (0.7, 0.1)))
+          state = c.state_signature()
+          assert state['mathematician_state'] == 7
+          assert state['quality'] == 0.25
+          assert 'professor_credit' in state and 'professor_h' in state
+          assert c.professor_summary()['professor_additive_not_replacement'] is True
+          assert c.professor_summary()['professor_knob_write_authority'] is False
+          print('Mathematician preserved; Professor additive: OK')
+          PY
