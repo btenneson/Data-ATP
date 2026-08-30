@@ -9,6 +9,7 @@ from .autonomy import (
     Evidence,
     ExceptionPolicy,
 )
+from .bank import BankDepositResult, BankEntry, SharedBank, select_by_kind
 from .checkpoint import (
     CHECKPOINT_SCHEMA_VERSION,
     CheckpointError,
@@ -31,6 +32,8 @@ __all__ = [
     "AccountableSearchEngine",
     "ActionCandidate",
     "AuthorityLevel",
+    "BankDepositResult",
+    "BankEntry",
     "CHECKPOINT_SCHEMA_VERSION",
     "CheckpointError",
     "CheckpointManager",
@@ -45,6 +48,7 @@ __all__ = [
     "PicardStatus",
     "RunControlState",
     "RunOutcome",
+    "SharedBank",
     "Transaction",
     "TransactionLog",
     "completed_level_for_budget",
@@ -52,4 +56,5 @@ __all__ = [
     "cumulative_nominal_length",
     "hierarchical_atp_defect",
     "nominal_stage_length",
+    "select_by_kind",
 ]
