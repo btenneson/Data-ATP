@@ -1,0 +1,296 @@
+name: Professor vs Mathematician — prcom controlled A/B
+
+on:
+  push:
+    branches: [professor-wiring-v2]
+    paths:
+      - 'experiments/data_mind_2_5_mathematician_professor.py'
+      - '.github/workflows/professor-vs-mathematician-prcom.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ATP_COMMIT: ad2300ab1a47119f93f3417bc52c348f87e57c62
+  SETMM_COMMIT: cd577894d8e6bf8b4fe8014c0d525d531507e4b7
+  SETMM_SHA256: 1016d7edb0508abde0fe240bb5243e588c5067f8cb10ee6e1cc5733fc05acdb5
+  TARGET: prcom
+  PROBLEM_ID: target:prcom
+  BUDGET: '120000'
+  SEED: '2301'
+  WALL_SECONDS: '5400'
+  CONTROL_INTERVAL: '250'
+  ADULT_STEP: '0.025'
+  ADULT_FAILURE_STALE: '6000'
+  CHILD_TRIAL_EXPANSIONS: '12000'
+  CHILD_COOLDOWN_EXPANSIONS: '12000'
+  SHORTCUT_STEP: '0.0125'
+  SHORTCUT_MIN_CONFIDENCE: '0.08'
+  SHORTCUT_TOP_K: '8'
+  DISTANT_PROBABILITY: '0.05'
+  PROFESSOR_STEP: '0.00625'
+
+jobs:
+  run:
+    name: ${{ matrix.arm }} — prcom
+    runs-on: ubuntu-24.04
+    timeout-minutes: 100
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arm: mathematician
+            adapter: experiments/data_mind_2_4_mathematician_shortcuts.py
+            architecture: DATA-MIND 2.4 The Mathematician
+          - arm: professor
+            adapter: experiments/data_mind_2_5_mathematician_professor.py
+            architecture: DATA-MIND 2.5 Professor + Mathematician additive
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: btenneson/ATP
+          ref: ${{ env.ATP_COMMIT }}
+          path: upstream_atp
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Freeze theorem source and compile
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="results/prcom-${{ matrix.arm }}"
+          mkdir -p "$OUT"
+          curl -L --retry 3 --fail -o 'upstream_atp/predator 8/set.mm' \
+            "https://raw.githubusercontent.com/metamath/set.mm/$SETMM_COMMIT/set.mm"
+          test "$(sha256sum 'upstream_atp/predator 8/set.mm' | awk '{print $1}')" = "$SETMM_SHA256"
+          PYTHONPATH="$GITHUB_WORKSPACE/src" python -m py_compile \
+            experiments/data_mind_2_4_mathematician_shortcuts.py \
+            experiments/data_mind_2_5_mathematician_professor.py \
+            src/data_atp/professor.py \
+            src/data_atp/professor_overlay.py \
+            src/data_atp/mathematician_memory.py
+          {
+            echo "target=$TARGET"
+            echo "arm=${{ matrix.arm }}"
+            echo "architecture=${{ matrix.architecture }}"
+            echo "adapter=${{ matrix.adapter }}"
+            echo "budget=$BUDGET"
+            echo "seed=$SEED"
+            echo "wall_seconds=$WALL_SECONDS"
+            echo "control_interval=$CONTROL_INTERVAL"
+            echo "atp_commit=$ATP_COMMIT"
+            echo "data_atp_commit=$(git rev-parse HEAD)"
+            echo "setmm_commit=$SETMM_COMMIT"
+            echo "same_kernel=true"
+            echo "same_seed=true"
+            echo "same_budget=true"
+            echo "same_verifier=true"
+            echo "verifier_sovereign=true"
+            echo "professor_additive_not_replacement=true"
+            echo "professor_answer_key_used=false"
+            sha256sum \
+              experiments/data_mind_2_4_mathematician_shortcuts.py \
+              experiments/data_mind_2_5_mathematician_professor.py \
+              src/data_atp/professor.py src/data_atp/professor_overlay.py
+          } | tee "$OUT/protocol.txt"
+
+      - name: Run controlled arm
+        shell: bash
+        run: |
+          set +e
+          set -uo pipefail
+          OUT="results/prcom-${{ matrix.arm }}"
+          EXTRA=()
+          if [ "${{ matrix.arm }}" = "professor" ]; then
+            EXTRA+=(--professor-step "$PROFESSOR_STEP")
+          fi
+          /usr/bin/time -f 'process_wall_s=%e\nmax_rss_kb=%M' -o "$OUT/process_time.txt" \
+            timeout "$WALL_SECONDS" env PYTHONPATH="$GITHUB_WORKSPACE/src" \
+              python -u "${{ matrix.adapter }}" \
+                "${EXTRA[@]}" \
+                --version 2.4 \
+                --problem-id "$PROBLEM_ID" \
+                --run-id "prcom-${{ matrix.arm }}-${GITHUB_RUN_ID}" \
+                --memory "$OUT/mathematician_memory.jsonl" \
+                --shortcut-ledger "$OUT/shortcut_runtime_ledger.jsonl" \
+                --exposure-ledger "$OUT/exposure_runtime_ledger.jsonl" \
+                --shortcut-step "$SHORTCUT_STEP" \
+                --shortcut-min-confidence "$SHORTCUT_MIN_CONFIDENCE" \
+                --shortcut-top-k "$SHORTCUT_TOP_K" \
+                --distant-probability "$DISTANT_PROBABILITY" \
+                --atp-root "$GITHUB_WORKSPACE/upstream_atp" \
+                --setmm "$GITHUB_WORKSPACE/upstream_atp/predator 8/set.mm" \
+                --target "$TARGET" \
+                --budget "$BUDGET" \
+                --max-depth 12 \
+                --agents 4 \
+                --creativity 0.55 \
+                --seed "$SEED" \
+                --opener-cap 48 \
+                --max-open 8 \
+                --progress 250 \
+                --control-interval "$CONTROL_INTERVAL" \
+                --adult-step "$ADULT_STEP" \
+                --adult-failure-stale "$ADULT_FAILURE_STALE" \
+                --child-trial-expansions "$CHILD_TRIAL_EXPANSIONS" \
+                --child-cooldown-expansions "$CHILD_COOLDOWN_EXPANSIONS" \
+                --out "$OUT/candidate.mm" \
+                --transactions "$OUT/transactions.jsonl" \
+                --summary "$OUT/pre_external_summary.json" \
+            2>&1 | tee "$OUT/search.log"
+          RC=${PIPESTATUS[0]}
+          echo "returncode=$RC" > "$OUT/run_status.txt"
+          exit 0
+
+      - name: Independent contextual Metamath verification
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          set -o pipefail
+          OUT="results/prcom-${{ matrix.arm }}"
+          if [ ! -s "$OUT/candidate.mm" ]; then
+            echo 'No candidate certificate emitted.' | tee "$OUT/external_cv.log"
+            echo 'returncode=2' > "$OUT/external_cv_status.txt"
+            exit 0
+          fi
+          python - "$OUT" "$TARGET" <<'PY' 2>&1 | tee "$OUT/external_cv.log"
+          import re, sys
+          from pathlib import Path
+          out=Path(sys.argv[1]); target=sys.argv[2]
+          env_path=Path('upstream_atp/predator 8/set.mm')
+          env=env_path.read_text(encoding='utf-8')
+          cand=(out/'candidate.mm').read_text(encoding='utf-8')
+          proofs=list(re.finditer(r'\$=\s*(.*?)\s*\$\.', cand, re.S))
+          if len(proofs)!=1: raise SystemExit(f'expected one candidate proof, found {len(proofs)}')
+          proof=proofs[0].group(1).strip()
+          if not proof: raise SystemExit('empty candidate proof')
+          pat=re.compile(rf'(?ms)(^[ \t]*{re.escape(target)}[ \t]+\$p\b.*?\$=\s*)(.*?)(\s*\$\.)')
+          ms=list(pat.finditer(env))
+          if len(ms)!=1: raise SystemExit(f'expected one target theorem, found {len(ms)}')
+          m=ms[0]
+          patched=env[:m.start(2)] + proof + env[m.end(2):]
+          (out/'candidate_context.mm').write_text(patched, encoding='utf-8')
+          print('contextual verification preparation: OK')
+          print('candidate_proof_tokens=',len(proof.split()))
+          PY
+          PREP=${PIPESTATUS[0]}
+          if [ "$PREP" -ne 0 ]; then
+            echo "returncode=$PREP" > "$OUT/external_cv_status.txt"
+            exit 0
+          fi
+          python -u upstream_atp/metamath.py verify "$OUT/candidate_context.mm" \
+            2>&1 | tee -a "$OUT/external_cv.log"
+          RC=${PIPESTATUS[0]}
+          echo "returncode=$RC" > "$OUT/external_cv_status.txt"
+          exit 0
+
+      - name: Finalize arm result
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="results/prcom-${{ matrix.arm }}"
+          python - "$OUT" "${{ matrix.arm }}" "${{ matrix.architecture }}" <<'PY'
+          import json,re,sys
+          from pathlib import Path
+          out=Path(sys.argv[1]); arm=sys.argv[2]; architecture=sys.argv[3]
+          pre=json.loads((out/'pre_external_summary.json').read_text()) if (out/'pre_external_summary.json').exists() else {}
+          def rc(path):
+              p=out/path
+              if not p.exists(): return None
+              m=re.search(r'returncode=(\d+)',p.read_text())
+              return int(m.group(1)) if m else None
+          run_rc=rc('run_status.txt'); cv_rc=rc('external_cv_status.txt')
+          candidate=(out/'candidate.mm').exists() and (out/'candidate.mm').stat().st_size>0
+          verified=bool(candidate and cv_rc==0)
+          status='PROVED' if verified else 'VERIFIER_REJECTED' if candidate else 'TIMEOUT' if run_rc==124 else 'BOUNDED_UNKNOWN' if run_rc==1 else 'NO_VERIFIED_CERTIFICATE'
+          result=dict(pre)
+          result.update({
+              'experiment':'Professor vs Mathematician prcom controlled A/B',
+              'arm':arm,
+              'architecture':architecture,
+              'target':'prcom',
+              'status':status,
+              'candidate_emitted':candidate,
+              'certificate_verified':verified,
+              'run_returncode':run_rc,
+              'independent_context_verifier_returncode':cv_rc,
+              'budget':120000,
+              'seed':2301,
+              'wall_seconds':5400,
+              'matched_kernel_seed_budget_verifier':True,
+              'professor_gate_on':arm=='professor',
+              'professor_additive_not_replacement':True,
+              'professor_answer_key_used':False,
+              'professor_certificate_authority':False,
+              'professor_verifier_authority':False,
+              'verifier_sovereign':True,
+          })
+          (out/'result.json').write_text(json.dumps(result,indent=2)+'\n')
+          print(json.dumps(result,indent=2))
+          PY
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: prcom-${{ matrix.arm }}-${{ github.run_id }}
+          path: results/prcom-${{ matrix.arm }}
+          if-no-files-found: error
+          retention-days: 30
+
+  compare:
+    name: Compare matched prcom arms
+    needs: run
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: prcom-*-${{ github.run_id }}
+          path: downloaded
+      - name: Build A/B comparison
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          rows=[]
+          for p in sorted(Path('downloaded').rglob('result.json')):
+              rows.append(json.loads(p.read_text()))
+          if len(rows)!=2:
+              raise SystemExit(f'expected two arm results, found {len(rows)}')
+          rows=sorted(rows,key=lambda x:x['arm'])
+          by={r['arm']:r for r in rows}
+          base=by['mathematician']; prof=by['professor']
+          def metric(r,key):
+              v=r.get(key)
+              return v if isinstance(v,(int,float)) else None
+          comparison={
+              'experiment':'Professor vs Mathematician prcom controlled A/B',
+              'target':'prcom',
+              'matched_kernel_seed_budget_verifier':True,
+              'mathematician_status':base['status'],
+              'professor_status':prof['status'],
+              'mathematician_verified':base['certificate_verified'],
+              'professor_verified':prof['certificate_verified'],
+              'mathematician_expansions':metric(base,'expansions'),
+              'professor_expansions':metric(prof,'expansions'),
+              'mathematician_professor_gate':False,
+              'professor_professor_gate':True,
+              'professor_additive_not_replacement':True,
+              'professor_answer_key_used':False,
+              'scientific_interpretation':'This tests the additive runtime-state Professor channel; it is not an answer-key-oracle test.',
+          }
+          Path('comparison.json').write_text(json.dumps(comparison,indent=2)+'\n')
+          print(json.dumps(comparison,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: prcom-ab-comparison-${{ github.run_id }}
+          path: comparison.json
+          retention-days: 30
