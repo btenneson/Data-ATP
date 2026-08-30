@@ -1,0 +1,336 @@
+name: DATA-MIND sgrpcl full-feature 1.0 vs 1.1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/data-mind-sgrpcl-full-feature-v1.yml'
+  workflow_dispatch:
+    inputs:
+      budget:
+        description: 'Global expansion budget per arm'
+        required: false
+        default: '5000000'
+      seed:
+        description: 'Random seed'
+        required: false
+        default: '2301'
+      rotate_stale:
+        description: 'Supervisory rotation staleness threshold'
+        required: false
+        default: '5200'
+
+permissions:
+  contents: read
+
+env:
+  ATP_COMMIT: 0e8110f6d4318c107454143b3cf43aa2cc500966
+  SETMM_COMMIT: cd577894d8e6bf8b4fe8014c0d525d531507e4b7
+  SETMM_SHA256: 1016d7edb0508abde0fe240bb5243e588c5067f8cb10ee6e1cc5733fc05acdb5
+  RECON_PATH: experiments/support/predator_8_040_r3i4_supervisory_rotation_reconstruction.py
+  ADAPTER_PATH: experiments/data_mind_sgrpcl_full_feature_v2.py
+
+jobs:
+  preflight:
+    name: Architecture and provenance preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Recover pinned Predator lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+          ATP_ROOT="$RUNNER_TEMP/ATP"
+          git clone --quiet https://github.com/btenneson/ATP.git "$ATP_ROOT"
+          git -C "$ATP_ROOT" checkout --quiet "$ATP_COMMIT"
+          cp "$RECON_PATH" "$ATP_ROOT/predator 8/predator 8.040-R3I4-supervisory-rotation.py"
+          echo "ATP_ROOT=$ATP_ROOT" >> "$GITHUB_ENV"
+
+      - name: Compile the complete experiment path
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYTHONPATH="$GITHUB_WORKSPACE/src" python -m py_compile \
+            experiments/data_mind_sgrpcl_full_feature.py \
+            "$ADAPTER_PATH" \
+            "$ATP_ROOT/predator 8/predator 8.040-R3I4-supervisory-rotation.py" \
+            "$ATP_ROOT/predator 8/recovered8_002/predator8_038_eight_agent_revision_fallback.py"
+
+      - name: Verify reconstructed 8.040 stays inside preserved strategy envelope
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - "$ATP_ROOT/predator 8/predator 8.040-R3I4-supervisory-rotation.py" <<'PY'
+          import importlib.util, json, os, sys
+          path=sys.argv[1]
+          os.environ['PREDATOR_840_ROTATE_STALE']='5200'
+          spec=importlib.util.spec_from_file_location('p840_preflight', path)
+          mod=importlib.util.module_from_spec(spec); sys.modules[spec.name]=mod; spec.loader.exec_module(mod)
+          r=mod.reconstruction_selfcheck()
+          assert r['strategy_at_threshold']=='ROTATED', r
+          assert r['rotated_uses_only_existing_extrema'], r
+          assert set(mod.BASE6.STRATEGY) >= {'COMPASS','CERTIFY','DIVERSIFY','LEAN','ROTATED'}
+          assert mod.BASE6._strategy_for is mod.supervisory_strategy_for
+          print(json.dumps(r, indent=2))
+          PY
+
+      - name: Verify eight-agent group-inverse revision component
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$ATP_ROOT/predator 8/recovered8_002"
+          python -m unittest -v test_predator8_038_eight_agent_revision_fallback.py
+
+      - name: Record frozen-source hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum \
+            "$ADAPTER_PATH" \
+            experiments/data_mind_sgrpcl_full_feature.py \
+            "$RECON_PATH" \
+            "$ATP_ROOT/predator 8/predator 8.006-R3I4-strategy-switch.py" \
+            "$ATP_ROOT/predator 8/predator 8.009-R3I4-saturation-relay.py" \
+            "$ATP_ROOT/predator 8/recovered8_002/predator8_038_eight_agent_revision_fallback.py"
+
+  compare:
+    name: DATA-MIND ${{ matrix.version }} — sgrpcl
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        version: ['1.0', '1.1']
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install runtime dependencies
+        run: python -m pip install --quiet numpy scipy scikit-learn joblib
+
+      - name: Recover identical frozen environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          ATP_ROOT="$RUNNER_TEMP/ATP"
+          git clone --quiet https://github.com/btenneson/ATP.git "$ATP_ROOT"
+          git -C "$ATP_ROOT" checkout --quiet "$ATP_COMMIT"
+          cp "$RECON_PATH" "$ATP_ROOT/predator 8/predator 8.040-R3I4-supervisory-rotation.py"
+          echo "ATP_ROOT=$ATP_ROOT" >> "$GITHUB_ENV"
+
+          SETMM="$RUNNER_TEMP/set.mm"
+          curl -L --retry 3 --fail -o "$SETMM" \
+            "https://raw.githubusercontent.com/metamath/set.mm/$SETMM_COMMIT/set.mm"
+          test "$(sha256sum "$SETMM" | awk '{print $1}')" = "$SETMM_SHA256"
+          echo "SETMM=$SETMM" >> "$GITHUB_ENV"
+
+          OUT="$GITHUB_WORKSPACE/results/data-mind-${{ matrix.version }}"
+          mkdir -p "$OUT"
+          echo "OUT=$OUT" >> "$GITHUB_ENV"
+
+          {
+            echo "data_atp_commit=$(git rev-parse HEAD)"
+            echo "atp_commit=$ATP_COMMIT"
+            echo "setmm_commit=$SETMM_COMMIT"
+            echo "setmm_sha256=$SETMM_SHA256"
+            sha256sum \
+              "$ADAPTER_PATH" \
+              experiments/data_mind_sgrpcl_full_feature.py \
+              "$RECON_PATH" \
+              "$ATP_ROOT/predator 8/predator 8.006-R3I4-strategy-switch.py" \
+              "$ATP_ROOT/predator 8/predator 8.009-R3I4-saturation-relay.py" \
+              "$ATP_ROOT/predator 8/recovered8_002/predator8_038_eight_agent_revision_fallback.py" \
+              "$ATP_ROOT/predator 8/predator 8.040-R3I4-supervisory-rotation.py"
+          } | tee "$OUT/frozen_sources.txt"
+          { uname -a; free -h; python --version; } | tee "$OUT/runner.txt"
+
+      - name: Run DATA-MIND on sgrpcl — stop on candidate or six-hour ceiling
+        shell: bash
+        run: |
+          set +e
+          set -uo pipefail
+          BUDGET='${{ github.event.inputs.budget }}'
+          SEED='${{ github.event.inputs.seed }}'
+          ROTATE='${{ github.event.inputs.rotate_stale }}'
+          BUDGET="${BUDGET:-5000000}"
+          SEED="${SEED:-2301}"
+          ROTATE="${ROTATE:-5200}"
+          echo "budget=$BUDGET" | tee "$OUT/parameters.txt"
+          echo "seed=$SEED" | tee -a "$OUT/parameters.txt"
+          echo "rotate_stale=$ROTATE" | tee -a "$OUT/parameters.txt"
+          echo "internal_population_wall_s=20400" | tee -a "$OUT/parameters.txt"
+          echo "outer_search_wall_s=21000" | tee -a "$OUT/parameters.txt"
+
+          /usr/bin/time -f 'process_wall_s=%e\nmax_rss_kb=%M' -o "$OUT/process_time.txt" \
+            timeout 21000s env \
+              PREDATOR_POP_WALL_SECONDS=20400 \
+              PYTHONPATH="$GITHUB_WORKSPACE/src" \
+              python -u "$ADAPTER_PATH" \
+                --version '${{ matrix.version }}' \
+                --atp-root "$ATP_ROOT" \
+                --setmm "$SETMM" \
+                --target sgrpcl \
+                --budget "$BUDGET" \
+                --max-depth 12 \
+                --agents 4 \
+                --creativity 0.55 \
+                --seed "$SEED" \
+                --opener-cap 48 \
+                --max-open 8 \
+                --progress 250 \
+                --rotate-stale "$ROTATE" \
+                --out "$OUT/candidate.mm" \
+                --transactions "$OUT/transactions.jsonl" \
+                --summary "$OUT/summary.json" \
+            2>&1 | tee "$OUT/search.log"
+          RC=${PIPESTATUS[0]}
+          echo "$RC" > "$OUT/search_returncode.txt"
+          exit 0
+
+      - name: Independent Metamath verification and verifier-gated BANK decision
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          set -uo pipefail
+          CVRC=99
+          if [ -s "$OUT/candidate.mm" ]; then
+            cd "$ATP_ROOT"
+            PYTHONPATH="$ATP_ROOT:$ATP_ROOT/predator 8" \
+              python -u 'predator 8/predator8_external_cv.py' "$SETMM" \
+                --target sgrpcl --certificate "$OUT/candidate.mm" \
+                > "$OUT/independent_cv.log" 2>&1
+            CVRC=$?
+          else
+            echo 'No candidate emitted; nothing can enter BANK.' > "$OUT/independent_cv.log"
+            CVRC=3
+          fi
+          echo "$CVRC" > "$OUT/independent_cv_returncode.txt"
+
+          cd "$GITHUB_WORKSPACE"
+          PYTHONPATH="$GITHUB_WORKSPACE/src" python - "$OUT" "$CVRC" <<'PY'
+          import json, sys
+          from pathlib import Path
+          from data_atp.events import EventType, TransactionLog
+
+          out=Path(sys.argv[1]); cvrc=int(sys.argv[2])
+          sp=out/'summary.json'
+          summary=json.loads(sp.read_text()) if sp.exists() else {}
+          candidate=out/'candidate.mm'
+          log=TransactionLog(out/'transactions.jsonl')
+
+          if candidate.exists() and candidate.stat().st_size and cvrc == 0:
+              log.append(EventType.VERIFIER_ACCEPTED, {
+                  'kind':'independent_context_substitution_verification',
+                  'target':'sgrpcl',
+                  'candidate_path':str(candidate),
+                  'bank_action':'COMMIT',
+                  'verifier_sovereign':True,
+              })
+              verified=True; bank=True; status='VERIFIED_AND_COMMITTED'
+          elif candidate.exists() and candidate.stat().st_size:
+              log.append(EventType.VERIFIER_REJECTED, {
+                  'kind':'independent_context_substitution_verification',
+                  'target':'sgrpcl',
+                  'candidate_path':str(candidate),
+                  'bank_action':'REJECT',
+                  'verifier_sovereign':True,
+                  'external_verifier_returncode':cvrc,
+              })
+              verified=False; bank=False; status='CANDIDATE_REJECTED'
+          else:
+              verified=False; bank=False; status='NO_CANDIDATE'
+
+          summary.update({
+              'certificate_verified':verified,
+              'bank_commit_written':bank,
+              'bank_status':status,
+              'independent_verification_pending':False,
+              'external_verifier_returncode':cvrc,
+              'transaction_log_verified_post_external_cv':log.verify(),
+              'shared_newest_architecture_enabled':True,
+              'policy_adaptation_enabled':summary.get('version') == '1.1',
+          })
+          sp.write_text(json.dumps(summary, indent=2)+'\n')
+          print(json.dumps(summary, indent=2))
+          if not log.verify():
+              raise SystemExit('transaction log failed verification')
+          PY
+
+          cat "$OUT/independent_cv.log"
+          exit 0
+
+      - name: Upload complete arm evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: data-mind-sgrpcl-${{ matrix.version }}-${{ github.run_id }}
+          path: results/data-mind-${{ matrix.version }}/
+          if-no-files-found: error
+          retention-days: 90
+
+  summarize:
+    name: Pairwise DATA-MIND sgrpcl summary
+    needs: compare
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: data-mind-sgrpcl-*-${{ github.run_id }}
+          path: all_results
+
+      - name: Build paired result
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          rows=[]
+          for p in sorted(Path('all_results').glob('data-mind-sgrpcl-*/summary.json')):
+              r=json.loads(p.read_text())
+              timing=p.parent/'process_time.txt'
+              if timing.exists():
+                  for line in timing.read_text(errors='replace').splitlines():
+                      if line.startswith('process_wall_s='):
+                          try:r['process_wall_s']=float(line.split('=',1)[1])
+                          except:pass
+                      if line.startswith('max_rss_kb='):
+                          try:r['max_rss_kb']=int(line.split('=',1)[1])
+                          except:pass
+              rows.append(r)
+          rows.sort(key=lambda r:r.get('version',''))
+          if len(rows) != 2:
+              raise SystemExit(f'expected two DATA-MIND arms, found {len(rows)}')
+          paired={
+              'benchmark':'Metamath sgrpcl shared-newest-architecture comparison',
+              'target':'sgrpcl',
+              'same_search_engine':True,
+              'same_seed_budget_and_verifier':True,
+              'shared_newest_architecture_enabled_for_both':True,
+              'controlled_difference':'DATA-MIND 1.1 may learn and override legal high-level search policy; DATA-MIND 1.0 is advisory-only',
+              'verifier_sovereign':True,
+              'rows':rows,
+          }
+          Path('data_mind_sgrpcl_pair_summary.json').write_text(json.dumps(paired,indent=2)+'\n')
+          print(json.dumps(paired,indent=2))
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: data-mind-sgrpcl-pair-summary-${{ github.run_id }}
+          path: data_mind_sgrpcl_pair_summary.json
+          if-no-files-found: error
+          retention-days: 90
