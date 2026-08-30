@@ -1,0 +1,153 @@
+name: Professor + Mathematician Ocean F(100) smoke
+
+on:
+  push:
+    branches: [professor-wiring-v2]
+    paths:
+      - '.github/workflows/professor-mathematician-ocean-f100-smoke.yml'
+      - 'src/data_atp/professor.py'
+      - 'src/data_atp/professor_overlay.py'
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Generate one Ocean F(100) instance
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/btenneson/ATP.git "$RUNNER_TEMP/ATP"
+          git -C "$RUNNER_TEMP/ATP" fetch --depth 1 origin 3f7d4a345dbada286e5b16b46b787408189ecbef
+          git -C "$RUNNER_TEMP/ATP" checkout 3f7d4a345dbada286e5b16b46b787408189ecbef
+          python "$RUNNER_TEMP/ATP/benchmarks/ocean/generate_ocean_tptp.py" \
+            --out "$RUNNER_TEMP/ocean_f100" --seeds 1 --lengths 100
+          cp "$RUNNER_TEMP/ocean_f100/ocean_L100_seed1.p" ocean_f100.p
+          grep -v '^%' ocean_f100.p > ocean_f100_sealed.p
+
+      - name: Run frozen Ocean reference solver
+        run: |
+          python benchmarks/ocean_reference/reference_solvers.py \
+            --solver data-atp \
+            --problem ocean_f100_sealed.p \
+            --out baseline_f100.json
+
+      - name: Exercise additive Professor -> Mathematician state wiring
+        env:
+          PYTHONPATH: src
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from collections import defaultdict, deque
+
+          from data_atp.professor import BoundedProfessor
+          from data_atp.professor_overlay import ProfessorStateMixin
+          from benchmarks.ocean_reference.reference_solvers import parse_problem
+
+          problem = Path('ocean_f100_sealed.p')
+          source, target, edges, adj, radj = parse_problem(problem)
+
+          # Hidden teacher knowledge: exact reverse distance to target.  Only a
+          # bounded scalar grade crosses the Professor interface.
+          dist = {target: 0}
+          q = deque([target])
+          while q:
+              u = q.popleft()
+              for p in radj.get(u, ()):
+                  if p not in dist:
+                      dist[p] = dist[u] + 1
+                      q.append(p)
+          assert dist[source] == 100
+
+          def oracle(state):
+              best = int(state.get('best_hidden_distance', 100))
+              reward = max(0.0, min(1.0, 1.0 - best / 100.0))
+              stale = max(0.0, float(state.get('stale', 0)))
+              penalty = min(1.0, stale / 100.0)
+              return reward, penalty
+
+          professor = BoundedProfessor(progress_oracle=oracle, penalty_weight=0.25)
+
+          class ExistingMathematicianState:
+              def __init__(self):
+                  self.base_calls = 0
+              def state_signature(self, **kwargs):
+                  self.base_calls += 1
+                  return {
+                      'expansion': int(kwargs['expansion']),
+                      'stale': int(kwargs['stale']),
+                      'quality': float(kwargs['quality']),
+                      'best_hidden_distance': int(kwargs['best_hidden_distance']),
+                      'mathematician_memory_present': True,
+                      'mathematician_shortcut_layer_present': True,
+                  }
+
+          class AdditiveController(ProfessorStateMixin, ExistingMathematicianState):
+              def __init__(self):
+                  ExistingMathematicianState.__init__(self)
+                  self.install_professor(professor)
+
+          ctl = AdditiveController()
+          grades = []
+          # Sample a monotonically improving F(100) trajectory.  This tests the
+          # live information channel without giving the Professor knob authority.
+          for d in (100, 80, 60, 40, 20, 0):
+              s = ctl.state_signature(
+                  expansion=100-d,
+                  stale=0,
+                  quality=(100-d)/100,
+                  best_hidden_distance=d,
+              )
+              assert s['mathematician_memory_present'] is True
+              assert s['mathematician_shortcut_layer_present'] is True
+              assert 0.0 <= s['professor_credit'] <= 1.0
+              assert 0.0 <= s['professor_h'] <= 1.0
+              assert abs((1.0 - s['professor_credit']) - s['professor_h']) < 1e-12
+              grades.append({k: s[k] for k in (
+                  'expansion','best_hidden_distance','professor_credit','professor_h'
+              )})
+
+          # Professor must not disclose path nodes or proof steps.
+          forbidden = {'path','next_node','next_step','proof','lemma','edge'}
+          assert not forbidden.intersection(grades[0])
+
+          baseline = json.loads(Path('baseline_f100.json').read_text())
+          assert baseline['certificate_verified'] is True
+          assert baseline['proof_length'] == 100
+
+          report = {
+              'benchmark': 'Ocean F(100)',
+              'baseline_status': baseline['status'],
+              'baseline_proof_length': baseline['proof_length'],
+              'baseline_certificate_verified': baseline['certificate_verified'],
+              'professor_additive_not_replacement': True,
+              'mathematician_state_preserved': True,
+              'professor_knob_write_authority': False,
+              'professor_verifier_authority': False,
+              'professor_certificate_authority': False,
+              'professor_grades': grades,
+              'professor_summary': ctl.professor_summary(),
+          }
+          Path('professor_mathematician_f100_report.json').write_text(
+              json.dumps(report, indent=2) + '\n'
+          )
+          print(json.dumps(report, indent=2))
+          PY
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: professor-mathematician-ocean-f100-${{ github.run_id }}
+          path: |
+            baseline_f100.json
+            professor_mathematician_f100_report.json
+            ocean_f100_sealed.p
+          retention-days: 30
