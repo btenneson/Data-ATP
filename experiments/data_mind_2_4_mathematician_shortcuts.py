@@ -389,20 +389,40 @@ class MathematicianController(V2.ExactGroupActualKnobController):
         state = self.state_signature(**kwargs)
         self.settle_pending(exp=exp)
         base_delta = {k: float(self.u[k]) - float(before_base[k]) for k in KNOBS}
-        self.memory_store.append(
-            problem_id=self.cfg.problem_id,
-            run_id=self.cfg.run_id,
-            kind="adult_control_observation",
-            source_agent=self.current_agent,
-            shortcut_type="control",
-            state_signature=state,
-            action={"latent_delta": base_delta},
-            metrics={
-                "quality": float(self.last_quality) if finite(self.last_quality) else None,
-                "dissatisfaction": float(self.last_dissatisfaction),
-            },
-            tags=("control", "adult", "observation"),
-        )
+
+        if action == "NONE":
+            self.memory_store.append(
+                problem_id=self.cfg.problem_id,
+                run_id=self.cfg.run_id,
+                kind="adult_control_observation",
+                source_agent=self.current_agent,
+                shortcut_type="control",
+                state_signature=state,
+                action={"latent_delta": base_delta},
+                metrics={
+                    "quality": float(self.last_quality) if finite(self.last_quality) else None,
+                    "dissatisfaction": float(self.last_dissatisfaction),
+                },
+                tags=("control", "adult", "observation"),
+            )
+        else:
+            # Child inverse/accept/rollback transitions are preserved, but are
+            # not exposed to the shortcut learner as ordinary adult deltas.
+            self.memory_store.append(
+                problem_id=self.cfg.problem_id,
+                run_id=self.cfg.run_id,
+                kind="child_control_transition",
+                source_agent=self.current_agent,
+                shortcut_type=None,
+                state_signature=state,
+                action={"child_action": action},
+                metrics={
+                    "quality": float(self.last_quality) if finite(self.last_quality) else None,
+                    "dissatisfaction": float(self.last_dissatisfaction),
+                },
+                tags=("control", "child", action.lower()),
+            )
+
         # Never stack learned shortcut control on a child transition.
         if action == "NONE" and self.mode == "ADULT":
             self.deliberate(exp=exp, state=state)
@@ -443,6 +463,7 @@ class MathematicianController(V2.ExactGroupActualKnobController):
                 "cross_problem_memory_allowed": True,
                 "occasional_distant_retrieval": True,
                 "p_r_i_c_couples_in_shortcut_deliberation": True,
+                "child_transitions_separated_from_adult_shortcut_training": True,
                 "shortcut_proposals": self.shortcut_proposals,
                 "shortcut_applied": self.shortcut_applied,
                 "shortcut_successes": self.shortcut_successes,
