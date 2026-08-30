@@ -1,0 +1,155 @@
+name: DATA-MIND 2.4 Mathematician preflight
+
+on:
+  push:
+    branches: [data-mind-2.4-mathematician-shortcuts]
+    paths:
+      - 'src/data_atp/mathematician_memory.py'
+      - 'experiments/data_mind_2_4_mathematician_shortcuts.py'
+      - 'tests/test_mathematician_memory.py'
+      - 'docs/DATA_MIND_2_4_THE_MATHEMATICIAN.md'
+      - '.github/workflows/data-mind-2-4-mathematician-preflight.yml'
+  pull_request:
+    paths:
+      - 'src/data_atp/mathematician_memory.py'
+      - 'experiments/data_mind_2_4_mathematician_shortcuts.py'
+      - 'tests/test_mathematician_memory.py'
+      - '.github/workflows/data-mind-2-4-mathematician-preflight.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ATP_COMMIT: ad2300ab1a47119f93f3417bc52c348f87e57c62
+
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: btenneson/ATP
+          ref: ${{ env.ATP_COMMIT }}
+          path: upstream_atp
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install package and test runner
+        run: python -m pip install -e . pytest
+
+      - name: Compile Mathematician lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYTHONPATH="$GITHUB_WORKSPACE/src" python -m py_compile \
+            src/data_atp/mathematician_memory.py \
+            experiments/data_mind_2_2_2_3_actual_knob_controller.py \
+            experiments/data_mind_2_2_2_3_actual_knob_controller_v2.py \
+            experiments/data_mind_2_4_mathematician_shortcuts.py
+
+      - name: Test append-only memory and shortcut transfer
+        run: python -m pytest -q tests/test_mathematician_memory.py
+
+      - name: Exercise 2.4 Couple shortcut overlay
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYTHONPATH="$GITHUB_WORKSPACE/src" python - <<'PY'
+          import importlib.util
+          from pathlib import Path
+          import sys
+          import tempfile
+
+          root = Path.cwd()
+          pred_dir = root / 'upstream_atp/predator 8'
+          sys.path.insert(0, str(root / 'upstream_atp'))
+          sys.path.insert(0, str(pred_dir))
+
+          wrapper = root / 'experiments/data_mind_2_4_mathematician_shortcuts.py'
+          spec = importlib.util.spec_from_file_location('dm24', wrapper)
+          mod = importlib.util.module_from_spec(spec)
+          sys.modules[spec.name] = mod
+          spec.loader.exec_module(mod)
+
+          kernel = mod.BASE.load_module(
+              'dm24_preflight_kernel',
+              pred_dir / 'predator 8.007-R3I4-dvcoherent-imagination.py'
+          )
+          from data_atp.events import TransactionLog
+          from data_atp.mathematician_memory import AppendOnlyMemoryStore
+
+          td = Path(tempfile.mkdtemp())
+          memory = td / 'memory.jsonl'
+          seed = AppendOnlyMemoryStore(memory)
+          seed.append(
+              problem_id='DM-PB-0003',
+              run_id='old-ocean',
+              kind='shortcut_outcome',
+              outcome='failure',
+              shortcut_type='control',
+              state_signature={'stale': 250, 'duplicate_rate': .15},
+              action={'delta': {'explore_extra': .02}},
+              tags=('shortcut', 'cross-problem'),
+          )
+
+          mod._CONFIG = mod.Config(
+              problem_id='DM-PB-0001',
+              run_id='preflight',
+              memory=memory,
+              shortcut_ledger=td / 'shortcut.jsonl',
+              exposure_ledger=td / 'exposure.jsonl',
+              shortcut_step=.0125,
+              min_confidence=0.0,
+              top_k=8,
+              distant_probability=1.0,
+              shortcuts_enabled=True,
+              ingest=(),
+          )
+          log = TransactionLog(td / 'transactions.jsonl')
+          controller = mod.MathematicianController(
+              version='2.3',
+              base6=kernel.BASE6,
+              log=log,
+              control_interval=250,
+              adult_failure_stale=6000,
+              child_trial_expansions=12000,
+              child_cooldown_expansions=12000,
+          )
+          mod.V2.exact_selftest(controller)
+          controller.begin_agent('P1')
+          action1 = controller.sample(
+              exp=250, live_rhat=1.2, stale=250, dup_rate=.15,
+              terminal_rejects=0, frontier_size=1000,
+              imagined_total=200, imagined_previous=0,
+              remaining_budget=100000,
+          )
+          assert action1 == 'NONE'
+          assert controller.shortcut_proposals == 1
+          assert controller.couple_messages == 4
+          assert controller.shortcut_applied == 1
+
+          controller.sample(
+              exp=500, live_rhat=1.1, stale=0, dup_rate=.10,
+              terminal_rejects=0, frontier_size=900,
+              imagined_total=300, imagined_previous=200,
+              remaining_budget=99750,
+          )
+          assert controller.shortcut_successes + controller.shortcut_failures == 1
+          assert controller.memory_store.verify()
+          outcomes = [r for r in controller.memory_store.records() if r['kind'] == 'shortcut_outcome']
+          assert any(r['outcome'] == 'failure' for r in outcomes)  # old failure retained
+          assert len(outcomes) >= 2  # old evidence + newly evaluated shortcut
+          print('DATA-MIND 2.4 Mathematician preflight: PASSED')
+          PY
+
+      - name: Record source hashes
+        shell: bash
+        run: |
+          sha256sum \
+            src/data_atp/mathematician_memory.py \
+            experiments/data_mind_2_4_mathematician_shortcuts.py \
+            tests/test_mathematician_memory.py
