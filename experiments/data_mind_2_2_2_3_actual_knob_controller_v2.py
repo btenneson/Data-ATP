@@ -35,6 +35,7 @@ if spec is None or spec.loader is None:
 BASE = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = BASE
 spec.loader.exec_module(BASE)
+ORIGINAL_SELFTEST = BASE._selftest_controller
 
 KNOBS = BASE.KNOBS
 INTEGER_KNOBS = BASE.INTEGER_KNOBS
@@ -382,7 +383,7 @@ class ExactGroupActualKnobController(BASE.ActualKnobController):
 
 
 def exact_selftest(controller: ExactGroupActualKnobController) -> None:
-    BASE._selftest_controller(controller)
+    ORIGINAL_SELFTEST(controller)
     original = dict(controller.u)
     inv = controller.inverse_vector(original)
     twice = controller.inverse_vector(inv)
@@ -395,7 +396,6 @@ def exact_selftest(controller: ExactGroupActualKnobController) -> None:
         composed = logit_group_compose(u, inv[key])
         if not math.isclose(composed, 0.5, abs_tol=1e-12):
             raise SystemExit(f"{key}: u * u^-1 != identity")
-    # Interior embedding must preserve the exact decoded endpoints.
     for key in KNOBS:
         lo, hi = controller.bounds[key]
         if math.isclose(lo, hi):
@@ -411,7 +411,6 @@ def exact_selftest(controller: ExactGroupActualKnobController) -> None:
     print("[DATA-MIND 2.x V2 SELFTEST] exact logit-group inverse + endpoint decode: passed")
 
 
-# Base.main resolves these globals when it runs.
 BASE.ActualKnobController = ExactGroupActualKnobController
 BASE._selftest_controller = exact_selftest
 
