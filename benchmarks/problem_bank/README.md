@@ -4,6 +4,24 @@ This directory is the persistent problem bank for DATA MIND experiments.
 
 The bank is intentionally reusable. A problem may be used in one experiment, reused in another, paired across versions, or reserved as a holdout at our discretion. Reuse is not considered a flaw; what matters is that exposure history is recorded accurately so we can distinguish learning, controlled comparison, and generalization.
 
+## Permanent-memory rule
+
+**Never delete successes or failures.**
+
+For The Mathematician, experimental history is append-only evidence. Successful proofs, failed searches, rejected shortcuts, dead ends, verifier failures, timing failures, bad revisions, useful revisions, Couple communications, control decisions, and abandoned strategies should all remain available for later learning.
+
+An old record may be reweighted, marked obsolete, superseded by a newer interpretation, or assigned very low retrieval priority, but it should not be erased from the learning history.
+
+Conceptually, if the accumulated memory after experiment `t` is `M_t` and new evidence is `E_{t+1}`, then
+
+\[
+M_{t+1}=M_t \cup E_{t+1},
+\]
+
+not a replacement of `M_t` by only the currently successful material.
+
+Failures are first-class learning data. A failed attempt can later become a negative shortcut, a dead-basin signature, a settlement-switch signal, a revision trigger, or a useful analogy for a different problem.
+
 ## Status classes
 
 - `LAB` — freely reusable for development, debugging, tuning, ablations, and repeated learning experiments.
