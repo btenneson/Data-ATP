@@ -65,6 +65,10 @@ jobs:
           import tempfile
 
           root = Path.cwd()
+          pred_dir = root / 'upstream_atp/predator 8'
+          sys.path.insert(0, str(root / 'upstream_atp'))
+          sys.path.insert(0, str(pred_dir))
+
           wrapper = root / 'experiments/data_mind_2_4_mathematician_shortcuts.py'
           spec = importlib.util.spec_from_file_location('dm24', wrapper)
           mod = importlib.util.module_from_spec(spec)
@@ -73,7 +77,7 @@ jobs:
 
           kernel = mod.BASE.load_module(
               'dm24_preflight_kernel',
-              root / 'upstream_atp/predator 8/predator 8.007-R3I4-dvcoherent-imagination.py'
+              pred_dir / 'predator 8.007-R3I4-dvcoherent-imagination.py'
           )
           from data_atp.events import TransactionLog
           from data_atp.mathematician_memory import AppendOnlyMemoryStore
