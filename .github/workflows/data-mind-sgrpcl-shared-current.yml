@@ -1,0 +1,336 @@
+name: DATA-MIND sgrpcl current shared architecture
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/data-mind-sgrpcl-shared-current.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: data-mind-sgrpcl-head-to-head
+  cancel-in-progress: true
+
+env:
+  ATP_COMMIT: ad2300ab1a47119f93f3417bc52c348f87e57c62
+  SETMM_COMMIT: cd577894d8e6bf8b4fe8014c0d525d531507e4b7
+  SETMM_SHA256: 1016d7edb0508abde0fe240bb5243e588c5067f8cb10ee6e1cc5733fc05acdb5
+  TARGET: sgrpcl
+  BUDGET: '300000'
+  SEED: '2301'
+  WALL_SECONDS: '21400'
+  ROTATE_STALE: '5200'
+  ADAPTER: experiments/data_mind_sgrpcl_full_feature_v2.py
+
+jobs:
+  preflight:
+    name: Current-architecture preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: btenneson/ATP
+          ref: ${{ env.ATP_COMMIT }}
+          path: upstream_atp
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Compile exact current lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYTHONPATH="$GITHUB_WORKSPACE/src" python -m py_compile \
+            experiments/data_mind_sgrpcl_full_feature.py \
+            "$ADAPTER" \
+            src/data_atp/events.py \
+            upstream_atp/metamath.py upstream_atp/setmm_grammar.py \
+            'upstream_atp/predator 8/predator 8.001.py' \
+            'upstream_atp/predator 8/predator 8.002-compass.py' \
+            'upstream_atp/predator 8/predator 8.003-R3I4.py' \
+            'upstream_atp/predator 8/predator 8.004-R3I4-indexed.py' \
+            'upstream_atp/predator 8/predator 8.005-R3I4-terminaldv.py' \
+            'upstream_atp/predator 8/predator 8.006-R3I4-strategy-switch.py' \
+            'upstream_atp/predator 8/predator 8.007-R3I4-dvcoherent-imagination.py' \
+            'upstream_atp/predator 8/predator 8.040-R3I4-supervisory-rotation.py' \
+            'upstream_atp/predator 8/recovered8_002/predator8_038_eight_agent_revision_fallback.py'
+
+      - name: Self-test real Predator 8.040 half-turn
+        shell: bash
+        env:
+          PREDATOR_840_ROTATE_STALE: ${{ env.ROTATE_STALE }}
+          PYTHONPATH: ${{ github.workspace }}/upstream_atp
+        run: |
+          set -euo pipefail
+          python -u 'upstream_atp/predator 8/predator 8.040-R3I4-supervisory-rotation.py' selftest
+
+      - name: Self-test eight-agent group-inverse revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd 'upstream_atp/predator 8/recovered8_002'
+          python -m unittest -v test_predator8_038_eight_agent_revision_fallback.py
+
+      - name: Record exact source hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum \
+            "$ADAPTER" \
+            experiments/data_mind_sgrpcl_full_feature.py \
+            'upstream_atp/predator 8/predator 8.040-R3I4-supervisory-rotation.py' \
+            'upstream_atp/predator 8/predator 8.006-R3I4-strategy-switch.py' \
+            'upstream_atp/predator 8/predator 8.007-R3I4-dvcoherent-imagination.py' \
+            'upstream_atp/predator 8/recovered8_002/predator8_038_eight_agent_revision_fallback.py'
+
+  compare:
+    name: DATA-MIND ${{ matrix.version }} — sgrpcl
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 370
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include:
+          - version: '1.0'
+            id: data-mind-1.0
+          - version: '1.1'
+            id: data-mind-1.1
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: btenneson/ATP
+          ref: ${{ env.ATP_COMMIT }}
+          path: upstream_atp
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Freeze environment and protocol
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="results/${{ matrix.id }}"
+          mkdir -p "$OUT"
+          curl -L --retry 3 --fail -o 'upstream_atp/predator 8/set.mm' \
+            "https://raw.githubusercontent.com/metamath/set.mm/$SETMM_COMMIT/set.mm"
+          test "$(sha256sum 'upstream_atp/predator 8/set.mm' | awk '{print $1}')" = "$SETMM_SHA256"
+          {
+            echo "target=$TARGET"
+            echo "version=${{ matrix.version }}"
+            echo "budget=$BUDGET"
+            echo "seed=$SEED"
+            echo "wall_seconds=$WALL_SECONDS"
+            echo "rotate_stale=$ROTATE_STALE"
+            echo "atp_commit=$ATP_COMMIT"
+            echo "data_atp_commit=$(git rev-parse HEAD)"
+            echo "shared_newest_architecture=true"
+            echo "eight_agent_pre_bank_deliberation=true"
+            echo "counselor_professor=true"
+            echo "group_inverse_revision_shell=true"
+            echo "self_awareness_control_telemetry=true"
+            echo "verifier_sovereign=true"
+            echo "policy_adaptation_enabled=$([[ '${{ matrix.version }}' == '1.1' ]] && echo true || echo false)"
+            echo "policy_override_authority=$([[ '${{ matrix.version }}' == '1.1' ]] && echo true || echo false)"
+            echo "1.0_mode=all shared architecture runs but remains advisory-only"
+            echo "1.1_mode=same shell plus online learning and legal high-level strategy override"
+            sha256sum \
+              "$ADAPTER" \
+              experiments/data_mind_sgrpcl_full_feature.py \
+              'upstream_atp/predator 8/predator 8.040-R3I4-supervisory-rotation.py' \
+              'upstream_atp/predator 8/recovered8_002/predator8_038_eight_agent_revision_fallback.py'
+          } | tee "$OUT/protocol.txt"
+          { uname -a; free -h; python --version; } | tee "$OUT/runner.txt"
+
+      - name: Run DATA-MIND search
+        shell: bash
+        run: |
+          set +e
+          set -uo pipefail
+          OUT="results/${{ matrix.id }}"
+          /usr/bin/time -f 'process_wall_s=%e\nmax_rss_kb=%M' -o "$OUT/process_time.txt" \
+            timeout "$WALL_SECONDS" env \
+              PYTHONPATH="$GITHUB_WORKSPACE/src" \
+              PREDATOR_840_ROTATE_STALE="$ROTATE_STALE" \
+              python -u "$ADAPTER" \
+                --version '${{ matrix.version }}' \
+                --atp-root "$GITHUB_WORKSPACE/upstream_atp" \
+                --setmm "$GITHUB_WORKSPACE/upstream_atp/predator 8/set.mm" \
+                --target "$TARGET" \
+                --budget "$BUDGET" \
+                --max-depth 12 \
+                --agents 4 \
+                --creativity 0.55 \
+                --seed "$SEED" \
+                --opener-cap 48 \
+                --max-open 8 \
+                --progress 250 \
+                --rotate-stale "$ROTATE_STALE" \
+                --out "$OUT/candidate.mm" \
+                --transactions "$OUT/transactions.jsonl" \
+                --summary "$OUT/pre_external_summary.json" \
+            2>&1 | tee "$OUT/search.log"
+          RC=${PIPESTATUS[0]}
+          echo "returncode=$RC" > "$OUT/run_status.txt"
+          exit 0
+
+      - name: Independent contextual Metamath verification
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          set -o pipefail
+          OUT="results/${{ matrix.id }}"
+          if [ ! -s "$OUT/candidate.mm" ]; then
+            echo 'No candidate certificate emitted.' | tee "$OUT/external_cv.log"
+            echo 'returncode=2' > "$OUT/external_cv_status.txt"
+            exit 0
+          fi
+
+          python - "$OUT" "$TARGET" <<'PY' 2>&1 | tee "$OUT/external_cv.log"
+          import re, sys
+          from pathlib import Path
+          out=Path(sys.argv[1]); target=sys.argv[2]
+          env_path=Path('upstream_atp/predator 8/set.mm')
+          env=env_path.read_text(encoding='utf-8')
+          cand=(out/'candidate.mm').read_text(encoding='utf-8')
+          proofs=list(re.finditer(r'\$=\s*(.*?)\s*\$\.', cand, re.S))
+          if len(proofs)!=1: raise SystemExit(f'expected one candidate proof, found {len(proofs)}')
+          proof=proofs[0].group(1).strip()
+          if not proof: raise SystemExit('empty candidate proof')
+          pat=re.compile(rf'(?ms)(^[ \t]*{re.escape(target)}[ \t]+\$p\b.*?\$=\s*)(.*?)(\s*\$\.)')
+          ms=list(pat.finditer(env))
+          if len(ms)!=1: raise SystemExit(f'expected one target theorem, found {len(ms)}')
+          m=ms[0]
+          patched=env[:m.start(2)] + proof + env[m.end(2):]
+          (out/'candidate_context.mm').write_text(patched, encoding='utf-8')
+          print('contextual verification preparation: OK')
+          print('candidate_proof_tokens=',len(proof.split()))
+          PY
+          PREP=${PIPESTATUS[0]}
+          if [ "$PREP" -ne 0 ]; then
+            echo "returncode=$PREP" > "$OUT/external_cv_status.txt"
+            exit 0
+          fi
+          python -u upstream_atp/metamath.py verify "$OUT/candidate_context.mm" \
+            2>&1 | tee -a "$OUT/external_cv.log"
+          RC=${PIPESTATUS[0]}
+          echo "returncode=$RC" > "$OUT/external_cv_status.txt"
+          exit 0
+
+      - name: Finalize verifier-gated BANK record
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="results/${{ matrix.id }}"
+          PYTHONPATH="$GITHUB_WORKSPACE/src" python - "$OUT" '${{ matrix.version }}' <<'PY'
+          import json,re,sys
+          from pathlib import Path
+          from data_atp.events import EventType, TransactionLog
+          out=Path(sys.argv[1]); version=sys.argv[2]
+          pre=json.loads((out/'pre_external_summary.json').read_text()) if (out/'pre_external_summary.json').exists() else {}
+          run_text=(out/'run_status.txt').read_text() if (out/'run_status.txt').exists() else ''
+          cv_text=(out/'external_cv_status.txt').read_text() if (out/'external_cv_status.txt').exists() else ''
+          run_m=re.search(r'returncode=(\d+)',run_text); cv_m=re.search(r'returncode=(\d+)',cv_text)
+          run_rc=int(run_m.group(1)) if run_m else None; cv_rc=int(cv_m.group(1)) if cv_m else None
+          candidate=(out/'candidate.mm').exists() and (out/'candidate.mm').stat().st_size>0
+          verified=bool(candidate and cv_rc==0)
+          log=TransactionLog(out/'transactions.jsonl')
+          if candidate and verified:
+              log.append(EventType.VERIFIER_ACCEPTED,{'kind':'independent_verifier_result','target':'sgrpcl','accepted':True,'authority':'external_sovereign_verifier'})
+              log.append(EventType.ACTION_EXECUTED,{'kind':'bank_commit','target':'sgrpcl','gate':'independent_verifier_accepted'})
+          elif candidate:
+              log.append(EventType.VERIFIER_REJECTED,{'kind':'independent_verifier_result','target':'sgrpcl','accepted':False,'external_returncode':cv_rc,'authority':'external_sovereign_verifier'})
+              log.append(EventType.ACTION_REJECTED,{'kind':'bank_reject','target':'sgrpcl','gate':'independent_verifier_rejected'})
+          else:
+              log.append(EventType.SELF_REPORT_FILED,{'kind':'no_candidate','target':'sgrpcl','run_returncode':run_rc})
+          if verified: status='PROVED'
+          elif candidate: status='VERIFIER_REJECTED'
+          elif run_rc==124: status='TIMEOUT'
+          elif run_rc==1: status='BOUNDED_UNKNOWN'
+          else: status='NO_VERIFIED_CERTIFICATE'
+          result=dict(pre)
+          result.update({
+              'solver':f'DATA-MIND {version} current shared architecture',
+              'version':version,'target':'sgrpcl','status':status,
+              'certificate_verified':verified,'candidate_emitted':candidate,
+              'run_returncode':run_rc,'independent_context_verifier_returncode':cv_rc,
+              'transaction_log_verified':log.verify(),'bank_commit_written':verified,
+              'bank_commit_verifier_gated':True,'scientific_endpoint_met':verified,
+              'budget':300000,'seed':2301,'wall_seconds':21400,
+              'shared_search_engine':'pinned real Predator 8.040 R3/I4',
+              'atp_commit':'ad2300ab1a47119f93f3417bc52c348f87e57c62',
+              'shared_newest_architecture_enabled':True,
+              'eight_agent_deliberation_enabled':True,
+              'policy_adaptation_enabled':version=='1.1',
+              'policy_override_authority_enabled':version=='1.1',
+              'data_mind_1_0_advisory_only':version=='1.0',
+          })
+          if (out/'process_time.txt').exists():
+              for line in (out/'process_time.txt').read_text(errors='replace').splitlines():
+                  if line.startswith('process_wall_s='):
+                      try: result['process_wall_s']=float(line.split('=',1)[1])
+                      except: pass
+                  if line.startswith('max_rss_kb='):
+                      try: result['max_rss_kb']=int(line.split('=',1)[1])
+                      except: pass
+          (out/'result.json').write_text(json.dumps(result,indent=2)+'\n')
+          print(json.dumps(result,indent=2))
+          if not log.verify(): raise SystemExit('transaction log failed')
+          PY
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: data-mind-sgrpcl-current-${{ matrix.version }}-${{ github.run_id }}
+          path: results/${{ matrix.id }}/
+          if-no-files-found: error
+          retention-days: 90
+
+  summarize:
+    name: Current shared-architecture summary
+    needs: compare
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: data-mind-sgrpcl-current-*-${{ github.run_id }}
+          path: all_results
+      - name: Build paired summary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          rows=[json.loads(p.read_text()) for p in sorted(Path('all_results').glob('data-mind-sgrpcl-current-*/result.json'))]
+          rows.sort(key=lambda r:r.get('version',''))
+          if len(rows)!=2: raise SystemExit(f'expected two arms, got {len(rows)}')
+          s={
+              'benchmark':'sgrpcl DATA-MIND current shared-architecture paired test',
+              'target':'sgrpcl','budget_each':300000,'seed_each':2301,'wall_seconds_each':21400,
+              'same_real_predator_8_040_engine':True,
+              'shared_newest_architecture_enabled_for_both':True,
+              'controlled_difference':'1.1 has online policy learning/override authority; 1.0 runs the same deliberative shell advisory-only',
+              'independent_verifier_required':True,'rows':rows,
+          }
+          Path('data_mind_sgrpcl_current_summary.json').write_text(json.dumps(s,indent=2)+'\n')
+          print(json.dumps(s,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: data-mind-sgrpcl-current-summary-${{ github.run_id }}
+          path: data_mind_sgrpcl_current_summary.json
+          if-no-files-found: error
+          retention-days: 90
