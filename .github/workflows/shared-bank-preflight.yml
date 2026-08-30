@@ -1,0 +1,55 @@
+name: Shared BANK preflight
+
+on:
+  push:
+    branches: [professor-wiring-v2]
+    paths:
+      - 'src/data_atp/bank.py'
+      - 'src/data_atp/engine.py'
+      - 'src/data_atp/events.py'
+      - 'src/data_atp/__init__.py'
+      - 'tests/test_bank.py'
+      - '.github/workflows/shared-bank-preflight.yml'
+  workflow_dispatch:
+
+jobs:
+  bank-preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile BANK wiring
+        run: python -m compileall -q src/data_atp/bank.py src/data_atp/engine.py src/data_atp/events.py
+      - name: Test BANK laws
+        env:
+          PYTHONPATH: src
+        run: |
+          python -m pip install -q pytest
+          pytest -q tests/test_bank.py
+      - name: Cross-agent executable smoke
+        env:
+          PYTHONPATH: src
+        run: |
+          python - <<'PY'
+          from data_atp.bank import SharedBank
+
+          bank = SharedBank()
+          p = bank.deposit('verified-lemma', deposited_by='P', verify=lambda x: x == 'verified-lemma')
+          before = bank.snapshot_ids()
+          r = bank.query('R')
+          i = bank.query('I')
+          c = bank.query('C')
+          after = bank.snapshot_ids()
+
+          assert p.accepted and p.added
+          assert [e.item for e in r] == ['verified-lemma']
+          assert [e.item for e in i] == ['verified-lemma']
+          assert [e.item for e in c] == ['verified-lemma']
+          assert before == after
+          assert not bank.deposit('rejected', deposited_by='R', verify=lambda _: False).accepted
+          assert bank.snapshot_ids() == before
+          print('BANK monotonicity, verifier gate, non-destructive query, and cross-agent reuse: PASS')
+          PY
