@@ -1,0 +1,5 @@
+problem_id,name,family,formal_system,status,priority,intended_modes,first_recorded,exposure_count,versions_seen,shortcut_exposure,last_verified_result,notes
+DM-PB-0001,Semigroup closure / sgrpcl,semigroup,set.mm,TARGET,1,P,2026-08-30,0,,,pending,"Active target. Finish and independently verify before advancing to Halo(0) ≈ R."
+DM-PB-0002,Halo(0) ≈ R,nonstandard-analysis / set theory,set.mm + Choice,TARGET,2,P/R/I,2026-08-30,0,,,not-run,"Next major target after semigroup; maintain certificate verification."
+DM-PB-0003,Ocean reference benchmark,ocean,DATA-MIND benchmark,LAB,,P/R/I/C,2026-08-30,previous,,,mixed,"Existing repository benchmark at benchmarks/ocean_reference; freely reusable unless explicitly reserved for a particular holdout experiment."
+DM-PB-0004,ALD sealed settlement r02,sealed-settlement,ALD / DATA-MIND benchmark,LAB,,P/R/I/C,2026-08-30,previous,,,mixed,"Existing repository benchmark at benchmarks/ald_sealed_settlement_r02; exposure history should be expanded as old run records are incorporated."
