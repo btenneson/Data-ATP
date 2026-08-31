@@ -7,6 +7,7 @@ on:
       - '.github/workflows/data-mind-2-6-quotient-hunter-depth-n5.yml'
       - 'experiments/data_mind_2_6_quotient_hunter_depths.py'
       - 'src/data_atp/quotient_hunter.py'
+      - 'src/data_atp/events.py'
   workflow_dispatch:
 
 permissions:
@@ -66,6 +67,7 @@ jobs:
           PYTHONPATH="$GITHUB_WORKSPACE/src" python -m py_compile \
             src/data_atp/quotient_hunter.py \
             src/data_atp/mathematician_memory.py \
+            src/data_atp/events.py \
             experiments/data_mind_ocean_full_feature.py \
             experiments/data_mind_2_6_quotient_hunter_depths.py \
             "$RUNNER_TEMP/frozen/p8038.py"
