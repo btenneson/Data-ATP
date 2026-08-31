@@ -1,0 +1,63 @@
+name: DATA-MIND 2.7 — MIU Quotient Hunter
+
+on:
+  push:
+    branches:
+      - data-mind-2.7-miu-qh
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  miu-qh:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Compile experiment
+        run: python -m py_compile experiments/data_mind_2_7_miu_quotient_hunter.py
+
+      - name: Run controlled MIU experiment
+        run: |
+          mkdir -p results/miu-qh
+          /usr/bin/time -f 'process_wall_s=%e\nmax_rss_kb=%M' -o results/miu-qh/process_time.txt \
+            python -u experiments/data_mind_2_7_miu_quotient_hunter.py \
+              --target MU \
+              --budget 50000 \
+              --max-length 30 \
+              --out results/miu-qh/result.json \
+            | tee results/miu-qh/run.log
+
+      - name: Enforce scientific endpoint
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('results/miu-qh/result.json').read_text())
+          print('baseline:', r['baseline']['status'])
+          print('QH:', r['qh']['status'])
+          print('selected:', r['qh']['selected']['name'] if r['qh']['selected'] else None)
+          print('verified:', r['independent_verifier']['accepted'])
+          print('scientific_endpoint_met:', r['scientific_endpoint_met'])
+          assert r['architecture_version'] == '2.7'
+          assert r['qh']['known_miu_shortcut_handed_to_qh'] is False
+          assert r['qh']['target_truth_handed_to_qh'] is False
+          assert r['independent_verifier']['accepted'] is True
+          assert r['scientific_endpoint_met'] is True
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: data-mind-2.7-miu-qh-${{ github.run_id }}
+          path: results/miu-qh/
+          retention-days: 90
