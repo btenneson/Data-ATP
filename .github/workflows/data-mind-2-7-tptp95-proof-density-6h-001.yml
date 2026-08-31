@@ -1,0 +1,142 @@
+name: DATA-MIND 2.7 — TPTP 95% Random Held-Out Proof-Density 6h 001
+
+on:
+  push:
+    branches: [experiment/dm27-tptp95-proof-density-6h-001]
+    paths:
+      - '.github/workflows/data-mind-2-7-tptp95-proof-density-6h-001.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  TPTP_VERSION: '9.3.1'
+  DOMAIN: GRP
+  EDUCATION_FRACTION: '0.95'
+  SEED: '314159'
+  TRAIN_SECONDS: '1'
+  TARGET_SECONDS: '21600'
+
+jobs:
+  dm27-random-heldout:
+    name: dm27-tptp95-random-heldout-proof-density-6h
+    runs-on: ubuntu-24.04
+    timeout-minutes: 430
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install E and Python dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq eprover
+          python -m pip install --disable-pip-version-check -q numpy
+          eprover --version | head -20
+
+      - name: Download complete frozen TPTP release first
+        shell: bash
+        run: |
+          set -euo pipefail
+          ARCHIVE="TPTP-v${TPTP_VERSION}.tgz"
+          URL="https://tptp.org/TPTP/Distribution/${ARCHIVE}"
+          echo "Downloading complete official archive before education: $URL"
+          curl -fL --retry 5 --retry-delay 5 --connect-timeout 30 \
+            --output "$ARCHIVE" "$URL"
+          test -s "$ARCHIVE"
+          echo "archive_bytes=$(stat -c%s "$ARCHIVE")"
+          tar -tzf "$ARCHIVE" "TPTP-v${TPTP_VERSION}/Problems/${DOMAIN}" >/dev/null
+          echo "download_complete=true"
+
+      - name: Extract GRP and Axioms with original directory structure
+        shell: bash
+        run: |
+          set -euo pipefail
+          ARCHIVE="TPTP-v${TPTP_VERSION}.tgz"
+          SRC="TPTP-v${TPTP_VERSION}"
+          mkdir -p frozen
+          tar -xzf "$ARCHIVE" -C frozen \
+            "$SRC/Problems/$DOMAIN" \
+            "$SRC/Axioms"
+          ROOT="$GITHUB_WORKSPACE/frozen/$SRC"
+          test -d "$ROOT/Problems/$DOMAIN"
+          test -d "$ROOT/Axioms"
+          echo "TPTP_ROOT=$ROOT" >> "$GITHUB_ENV"
+          echo "grp_files=$(find "$ROOT/Problems/$DOMAIN" -maxdepth 1 -type f -name '*.p' | wc -l)"
+          rm -f "$ARCHIVE"
+
+      - name: Train on random 95 percent and freeze objective policy
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results/education
+          python -u experiments/data_mind_2_7_tptp95_proof_density.py train \
+            --tptp-root "$TPTP_ROOT" --domain "$DOMAIN" \
+            --tptp-version "$TPTP_VERSION" --fraction "$EDUCATION_FRACTION" \
+            --seed "$SEED" --train-seconds "$TRAIN_SECONDS" --out results/education \
+            2>&1 | tee results/education/training.log
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('results/education/result.json').read_text())
+          m=json.loads(Path('results/education/split_manifest.json').read_text())
+          assert r['status']=='TRAINING_COMPLETE'
+          assert r['architecture_version']=='2.7' and r['architecture_changed'] is True
+          assert m['target_in_training'] is False
+          assert m['same_abstract_problem_variants_in_training'] is False
+          assert m['target'] in m['holdout_files']
+          assert m['target'] not in m['training_files']
+          print('random_target=',m['target'])
+          print('training_count=',m['training_count'])
+          print('holdout_count=',m['holdout_count'])
+          print('actual_fraction=',m['actual_training_fraction'])
+          print('leakage_audit=VERIFIED')
+          PY
+
+      - name: Run six-hour objective-guided held-out examination
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results/examination
+          python -u experiments/data_mind_2_7_tptp95_proof_density.py examine \
+            --tptp-root "$TPTP_ROOT" --domain "$DOMAIN" \
+            --policy results/education/tptp95_policy.json \
+            --total-seconds "$TARGET_SECONDS" --out results/examination \
+            2>&1 | tee results/examination/examination.log
+
+      - name: Summarize experiment
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          ep=Path('results/education/result.json')
+          xp=Path('results/examination/result.json')
+          if ep.exists():
+              e=json.loads(ep.read_text())
+              print('education_status=',e.get('status'))
+              print('random_target=',e.get('random_heldout_target'))
+              print('training_count=',e.get('training_count'))
+              print('holdout_count=',e.get('holdout_count'))
+          if xp.exists():
+              x=json.loads(xp.read_text())
+              print('examination_status=',x.get('status'))
+              print('settled_strategy=',x.get('settled_strategy'))
+              print('elapsed_seconds=',x.get('elapsed_seconds'))
+          PY
+
+      - name: Upload experiment evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dm27-tptp95-proof-density-6h-${{ github.run_id }}
+          path: results/
+          if-no-files-found: warn
+          retention-days: 90
