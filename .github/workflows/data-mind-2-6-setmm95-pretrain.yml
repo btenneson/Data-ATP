@@ -1,0 +1,127 @@
+name: DATA-MIND 2.6 — 95% target-clean set.mm pretraining
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - data-mind-2.6-quotient-hunter
+    paths:
+      - experiments/data_mind_2_6_setmm95_pretrain.py
+      - experiments/run_data_mind_2_6_setmm95_pretrain.py
+      - .github/workflows/data-mind-2-6-setmm95-pretrain.yml
+
+permissions:
+  contents: read
+
+jobs:
+  pretrain-setmm95:
+    name: Train on 95% target-clean set.mm
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    env:
+      ATP_COMMIT: ad2300ab1a47119f93f3417bc52c348f87e57c62
+      SETMM_COMMIT: cd577894d8e6bf8b4fe8014c0d525d531507e4b7
+      SETMM_SHA256: 1016d7edb0508abde0fe240bb5243e588c5067f8cb10ee6e1cc5733fc05acdb5
+      TARGET: sgrpcl
+      TRAIN_FRACTION: '0.95'
+      SEED: '2301'
+      EPOCHS: '160'
+      NEGATIVES: '12'
+
+    steps:
+      - name: Checkout DATA-MIND 2.6 experiment
+        uses: actions/checkout@v4
+
+      - name: Checkout pinned ATP learning substrate
+        uses: actions/checkout@v4
+        with:
+          repository: btenneson/ATP
+          ref: ${{ env.ATP_COMMIT }}
+          path: upstream_atp
+
+      - name: Checkout pinned set.mm
+        uses: actions/checkout@v4
+        with:
+          repository: metamath/set.mm
+          ref: ${{ env.SETMM_COMMIT }}
+          path: setmm
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install frozen numerical dependency
+        run: python -m pip install --disable-pip-version-check numpy==2.1.3
+
+      - name: Verify frozen theorem corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(sha256sum setmm/set.mm | awk '{print $1}')" = "$SETMM_SHA256"
+          python -m py_compile \
+            experiments/data_mind_2_6_setmm95_pretrain.py \
+            experiments/run_data_mind_2_6_setmm95_pretrain.py
+          echo "Pinned ATP: $ATP_COMMIT"
+          echo "Pinned set.mm: $SETMM_COMMIT"
+          echo "Target: $TARGET"
+          echo "Education fraction: $TRAIN_FRACTION"
+
+      - name: Run leakage-controlled 95% education phase
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u experiments/run_data_mind_2_6_setmm95_pretrain.py \
+            --db setmm/set.mm \
+            --ml-sic upstream_atp/ml_sic_atp.py \
+            --target "$TARGET" \
+            --fraction "$TRAIN_FRACTION" \
+            --near-clone-jaccard 0.90 \
+            --near-clone-length-ratio 0.80 \
+            --negatives "$NEGATIVES" \
+            --epochs "$EPOCHS" \
+            --seed "$SEED" \
+            --out results/dm26-setmm95
+
+      - name: Assert no target leakage and frozen model exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('results/dm26-setmm95/result.json').read_text())
+          a=json.loads(Path('results/dm26-setmm95/exclusion_audit.json').read_text())
+          assert r['architecture_version']=='2.6'
+          assert r['architecture_changed'] is False
+          assert r['leakage_audit_passed'] is True
+          assert a['target_in_training'] is False
+          assert a['target_in_learner_graph'] is False
+          assert a['learner_target_statement_exposed'] is False
+          assert a['learner_target_proof_exposed'] is False
+          assert Path('results/dm26-setmm95/ranker95.json').is_file()
+          print('Leakage audit: PASS')
+          print('Studied:', r['studied_theorems'])
+          print('Admissible:', r['admissible_target_clean_theorems'])
+          print('Model SHA256:', r['model_sha256'])
+          print('Validation:', r['validation'])
+          PY
+
+      - name: Publish training summary
+        if: always()
+        shell: bash
+        run: |
+          if test -f results/dm26-setmm95/result.json; then
+            cat results/dm26-setmm95/result.json
+          else
+            echo 'Training result not yet produced.'
+          fi
+
+      - name: Upload frozen education artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: data-mind-2.6-setmm95-pretraining-${{ github.run_id }}
+          path: results/dm26-setmm95/
+          if-no-files-found: warn
+          retention-days: 30
