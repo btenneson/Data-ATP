@@ -34,6 +34,7 @@ spec.loader.exec_module(DM26)
 
 BASEMOD = DM26.DM24.V2.BASE
 _ORIGINAL_MAKE_PROVER = BASEMOD.make_prover
+_ORIGINAL_WRITE_SUMMARY = BASEMOD.write_summary
 
 
 def arg_value(argv: list[str], flag: str, default: str | None = None) -> str | None:
@@ -77,7 +78,7 @@ class FrozenEducationRanker:
         self.order = {str(k): int(v) for k, v in self.data.get("order", {}).items()}
         self.target_order = int(self.data["target_order"])
 
-        # Axiom/theorem type is not a learned parameter.  Recover it from the
+        # Axiom/theorem type is not a learned parameter. Recover it from the
         # pinned exam environment so feature 7 is evaluated exactly at test time.
         text = setmm.read_text(encoding="utf-8", errors="replace")
         text = re.sub(r"\$\(.*?\$\)", " ", text, flags=re.S)
@@ -143,7 +144,7 @@ class FrozenEducationRanker:
             self.learned_score_min = min(self.learned_score_min, learned)
             self.learned_score_max = max(self.learned_score_max, learned)
             # Frozen education is an additive prior over the same legal
-            # candidates.  No candidate is invented and no inference is relaxed.
+            # candidates. No candidate is invented and no inference is relaxed.
             out[lab] = old + self.blend * learned
         return out
 
@@ -198,6 +199,24 @@ def main() -> int:
         blend=max(0.0, min(4.0, float(ours.education_blend))),
     )
 
+    def augment_summary(path: Path) -> None:
+        if not path.exists():
+            return
+        data = json.loads(path.read_text(encoding="utf-8"))
+        data.update(ranker.summary())
+        data.update({
+            "architecture_version": "2.6",
+            "solver": "DATA-MIND 2.6 + frozen 95% education",
+            "architecture_changed": False,
+        })
+        path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+
+    def educated_write_summary(path, controller, *, target: str, rc: int | None):
+        # BASE.main's SIGTERM handler resolves this global at signal time. By
+        # wrapping it, a wall-clock timeout still preserves education telemetry.
+        _ORIGINAL_WRITE_SUMMARY(path, controller, target=target, rc=rc)
+        augment_summary(Path(path))
+
     def educated_make_prover(base7, controller):
         comp = base7.BASE6.COMP
         original_scores = comp._legacy_scores
@@ -209,7 +228,14 @@ def main() -> int:
         comp._legacy_scores = educated_scores
         return _ORIGINAL_MAKE_PROVER(base7, controller)
 
+    BASEMOD.write_summary = educated_write_summary
     BASEMOD.make_prover = educated_make_prover
+    print(
+        "EDUCATION_CHECKPOINT_LOADED "
+        f"target={target} fraction={ranker.data.get('training_fraction_of_target_clean_corpus')} "
+        f"sha256={ranker.file_sha256} architecture=2.6",
+        flush=True,
+    )
 
     old = sys.argv[:]
     sys.argv = [old[0], *remaining]
@@ -218,16 +244,7 @@ def main() -> int:
     finally:
         sys.argv = old
 
-    summary_path = Path(summary_raw).resolve()
-    if summary_path.exists():
-        data = json.loads(summary_path.read_text(encoding="utf-8"))
-        data.update(ranker.summary())
-        data.update({
-            "architecture_version": "2.6",
-            "solver": "DATA-MIND 2.6 + frozen 95% education",
-            "architecture_changed": False,
-        })
-        summary_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    augment_summary(Path(summary_raw).resolve())
     return rc
 
 
