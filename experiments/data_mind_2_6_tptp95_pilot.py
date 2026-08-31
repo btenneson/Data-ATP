@@ -31,9 +31,9 @@ from typing import Iterable
 
 import numpy as np
 
-FOF_RE = re.compile(r"^[A-Z]{3}\\d{3}\\+\\d+(?:\\.\\d+)?\\.p$")
-STATUS_RE = re.compile(r"(?mi)^%\\s*Status\\s*:\\s*([A-Za-z]+)")
-ABSTRACT_RE = re.compile(r"^([A-Z]{3}\\d{3})")
+FOF_RE = re.compile(r"^[A-Z]{3}\d{3}\+\d+(?:\.\d+)?\.p$")
+STATUS_RE = re.compile(r"(?mi)^%\s*Status\s*:\s*([A-Za-z]+)")
+ABSTRACT_RE = re.compile(r"^([A-Z]{3}\d{3})")
 RESERVED = {
     "fof", "cnf", "tff", "thf", "include", "axiom", "hypothesis",
     "definition", "assumption", "lemma", "theorem", "corollary",
@@ -139,7 +139,7 @@ def parse_fof_unit(unit: str):
 
 
 def symbols(formula: str) -> set[str]:
-    toks = set(re.findall(r"(?<![A-Za-z0-9_$])(\\$?[a-z][A-Za-z0-9_]*)", formula))
+    toks = set(re.findall(r"(?<![A-Za-z0-9_$])(\$?[a-z][A-Za-z0-9_]*)", formula))
     return {t for t in toks if t not in RESERVED}
 
 
@@ -211,9 +211,9 @@ def run_e(problem: Path, strategy: str, seconds: int, tptp_root: Path):
         rc = 124
         timed_out = True
     elapsed = time.perf_counter() - t0
-    match = re.search(r"(?mi)^#?\\s*%?\\s*SZS status\\s+([A-Za-z]+)", output)
+    match = re.search(r"(?mi)^#?\s*%?\s*SZS status\s+([A-Za-z]+)", output)
     if not match:
-        match = re.search(r"(?mi)SZS status\\s+([A-Za-z]+)", output)
+        match = re.search(r"(?mi)SZS status\s+([A-Za-z]+)", output)
     status = match.group(1) if match else None
     success = status in {"Theorem", "Unsatisfiable"}
     unsupported = bool(re.search(r"(?i)(usage error|unknown option|unrecognized option)", output))
