@@ -1,0 +1,39 @@
+{
+  "actual_training_fraction": 0.95,
+  "architecture_changed": true,
+  "architecture_version": "2.7",
+  "domain": "GRP",
+  "holdout_count": 9,
+  "leakage_audit_passed": true,
+  "model_sha256": "6d773528fc56c9190082654f96a19c9110ada396fa4476c3612546d0e6527e63",
+  "objective_weights": {
+    "density_proxy": 0.45,
+    "q_proxy": 0.2,
+    "repair_proxy": 0.35
+  },
+  "random_heldout_target": "GRP619+1.p",
+  "status": "TRAINING_COMPLETE",
+  "strategy_training_density": {
+    "auto": {
+      "n": 171,
+      "success_rate": 0.0,
+      "successes": 0
+    },
+    "auto_schedule": {
+      "n": 171,
+      "success_rate": 0.0,
+      "successes": 0
+    },
+    "satauto": {
+      "n": 1,
+      "success_rate": 0.0,
+      "successes": 0
+    }
+  },
+  "supported_strategies": [
+    "auto",
+    "auto_schedule"
+  ],
+  "target": "GRP619+1.p",
+  "training_count": 171
+}

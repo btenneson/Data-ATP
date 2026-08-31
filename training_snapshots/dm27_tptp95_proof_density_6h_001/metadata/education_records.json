@@ -1,0 +1,3944 @@
+[
+  {
+    "problem": "GRP638+3.p",
+    "runs": [
+      {
+        "elapsed_seconds": 1.0701806600000054,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.8618673690000094,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.002086507999990772,
+        "returncode": 4,
+        "status": null,
+        "strategy": "satauto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": true
+      }
+    ]
+  },
+  {
+    "problem": "GRP629+2.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.7190705360000038,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.369536265999983,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP640+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.0821189810000078,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.06505011300001229,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP634+2.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.303375146999997,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.22587463499999672,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP632+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.06177170699999124,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.09475404100001583,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP643+3.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.5232193090000123,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.46994321700000796,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP649+2.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.2651551950000055,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.2559419830000138,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP652+2.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.3348271830000158,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.32100681500000405,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP653+2.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.35143877399997336,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.34876237800000354,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP001+6.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.05806525700000975,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.07849119499999802,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP674+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.08833972899998344,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.08933872500000462,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP652+3.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.6859404939999934,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.6501108119999799,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP651+4.p",
+    "runs": [
+      {
+        "elapsed_seconds": 1.8417202219999922,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 1.0029196750000153,
+        "returncode": 7,
+        "status": "ResourceOut",
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP631+3.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.5575743380000233,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.5412010510000016,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP643+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.05892091499998742,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.08053836199999864,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP641+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.07637838400000874,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.08687751399997978,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP644+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.09719069700000205,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.09519581400002153,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP623+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.05976180100000761,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.16869016900000133,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP621+2.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.3944725750000089,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.2488627810000139,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP651+2.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.3282613279999964,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.3215087810000057,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP702+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.05681572500000698,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.05820639799998162,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP640+4.p",
+    "runs": [
+      {
+        "elapsed_seconds": 1.9937532460000114,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 1.0031726969999966,
+        "returncode": 7,
+        "status": "ResourceOut",
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP672+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.06350895300002435,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.06518218500002604,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP624+4.p",
+    "runs": [
+      {
+        "elapsed_seconds": 1.643748826999996,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 1.0025188490000119,
+        "returncode": 7,
+        "status": "ResourceOut",
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP631+4.p",
+    "runs": [
+      {
+        "elapsed_seconds": 1.5367532550000078,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 1.002344781000005,
+        "returncode": 7,
+        "status": "ResourceOut",
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP636+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.06721917999999505,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.06992216099999382,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP642+4.p",
+    "runs": [
+      {
+        "elapsed_seconds": 1.556699005000013,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 1.0031336899999985,
+        "returncode": 7,
+        "status": "ResourceOut",
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP623+4.p",
+    "runs": [
+      {
+        "elapsed_seconds": 1.474077426000008,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 1.0032901679999782,
+        "returncode": 7,
+        "status": "ResourceOut",
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP779+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.058894793999996864,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.05967318999998383,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP711+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.08340427300001352,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.08791315899998153,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP632+3.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.6282980800000075,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.6402766400000246,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP628+2.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.2633727489999842,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.25657534100000134,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP653+3.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.6773108790000038,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.6710289379999779,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP618+3.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.5109088929999928,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.45354661700000065,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP649+3.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.5458331520000002,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.5353857080000068,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP778+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.05532290000002149,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.057292454999981146,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP645+3.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.6745011190000127,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.5722583700000143,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP636+2.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.49804098299998145,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.2995848489999844,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP638+4.p",
+    "runs": [
+      {
+        "elapsed_seconds": 2.206334811000005,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 1.0031844590000105,
+        "returncode": 7,
+        "status": "ResourceOut",
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP622+3.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.5108495220000009,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.5073362679999889,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP648+2.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.292115095999975,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.2820180530000016,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP647+2.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.28753956099998845,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.27749890600000526,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP637+2.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.3218863179999971,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.30168555599999536,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP620+2.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.25012936700002797,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.24218324399998892,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP620+4.p",
+    "runs": [
+      {
+        "elapsed_seconds": 1.7152691119999872,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 1.002876566999987,
+        "returncode": 7,
+        "status": "ResourceOut",
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP640+3.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.7227240580000114,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.6924138260000063,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP659+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.056096223999986705,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.0788487319999831,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP683+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.0895578960000023,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.08348507900001323,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP648+4.p",
+    "runs": [
+      {
+        "elapsed_seconds": 1.746141582000007,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 1.0039848540000094,
+        "returncode": 7,
+        "status": "ResourceOut",
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP622+4.p",
+    "runs": [
+      {
+        "elapsed_seconds": 1.4724657200000024,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 1.0024351130000184,
+        "returncode": 7,
+        "status": "ResourceOut",
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP627+3.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.563699913000022,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.6785485529999846,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP700+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.06260486700000456,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.06270390200000975,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP631+2.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.2755782399999873,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.2341544450000015,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP648+3.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.6145268380000175,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.5934136749999936,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP666+6.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.0597116559999904,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.08096558200000459,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP666+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.07595772799999168,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.07614906699998869,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP747+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.08591822299999308,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.09074366800001599,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP630+4.p",
+    "runs": [
+      {
+        "elapsed_seconds": 1.7042315340000016,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 1.002227769000001,
+        "returncode": 7,
+        "status": "ResourceOut",
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP627+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.06566196500000387,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.0640027340000131,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP649+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.06359697600001368,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.08202861600000233,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP748+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.08590990700000134,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.08119580700000029,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP660+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.08369713700000148,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.09665446300002145,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP703+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.09103150000001392,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.09006999100000712,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP673+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.07368416100001696,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.07177847799999881,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP655+2.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.09059355399998026,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.08284772400000406,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP655+3.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.07236833900000761,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.09519281699999738,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP626+2.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.28494848599999045,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.229723966999984,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP621+3.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.6571309159999998,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.6497457970000085,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP645+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.0705817060000129,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.062377585999996654,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP635+2.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.3402085120000038,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.282387252999996,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP651+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.07620623100001467,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.09633399599999848,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP628+4.p",
+    "runs": [
+      {
+        "elapsed_seconds": 1.7293039669999928,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 1.004501984000001,
+        "returncode": 7,
+        "status": "ResourceOut",
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP652+4.p",
+    "runs": [
+      {
+        "elapsed_seconds": 1.8725337059999845,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 1.0023345429999893,
+        "returncode": 7,
+        "status": "ResourceOut",
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP647+4.p",
+    "runs": [
+      {
+        "elapsed_seconds": 1.645518007000021,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 1.0058583599999906,
+        "returncode": 7,
+        "status": "ResourceOut",
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP623+2.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.2124800569999934,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.2246879899999783,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP626+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.07290639499998974,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.098723557999989,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP624+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.08247338600000376,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.09265602700000386,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP634+3.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.5911682420000091,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.5305014310000047,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP776+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.08652647700000671,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.06175294799999165,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP624+3.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.676889038000013,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.5982074069999896,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP642+3.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.4930185369999833,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.47183622600002195,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP650+3.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.7008146259999819,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.6614360180000176,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP639+2.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.3504447159999984,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.34034963600001333,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP774+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.06227978300000814,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.10778241200000593,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP658+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.07536869700001603,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.08424915199998395,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP648+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.08106063299999278,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.09575969200000145,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP654+2.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.08114347500000463,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.08245027899999968,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP621+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.09667429900000002,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.09614361500001678,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP655+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.08020633099999941,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.08668634200000724,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP647+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.09484364799999412,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.07105856999999105,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP657+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.09036931699998263,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.09314203299999235,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP625+3.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.5996198990000039,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.5418651849999776,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP644+3.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.5778439730000002,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.5372264639999855,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP618+4.p",
+    "runs": [
+      {
+        "elapsed_seconds": 1.4114446060000034,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 1.003103374999995,
+        "returncode": 7,
+        "status": "ResourceOut",
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP641+4.p",
+    "runs": [
+      {
+        "elapsed_seconds": 1.465388445000002,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 1.0030859830000054,
+        "returncode": 7,
+        "status": "ResourceOut",
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP624+2.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.2489816289999851,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.2509236199999805,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP654+3.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.05958315200001607,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.08113322599999151,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP635+3.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.6738217869999801,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.6091483149999988,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP629+4.p",
+    "runs": [
+      {
+        "elapsed_seconds": 1.5744994800000143,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 1.0033578240000054,
+        "returncode": 7,
+        "status": "ResourceOut",
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP647+3.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.583747059999979,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.5704776039999899,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP632+4.p",
+    "runs": [
+      {
+        "elapsed_seconds": 1.584044457999994,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 1.0030134289999921,
+        "returncode": 7,
+        "status": "ResourceOut",
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP641+3.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.4813790210000093,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.4741342020000161,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP644+2.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.26208029499997565,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.25320418399999767,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP621+4.p",
+    "runs": [
+      {
+        "elapsed_seconds": 1.5955710570000008,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 1.001961367000007,
+        "returncode": 7,
+        "status": "ResourceOut",
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP626+4.p",
+    "runs": [
+      {
+        "elapsed_seconds": 1.5584901869999896,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 1.0020895170000017,
+        "returncode": 7,
+        "status": "ResourceOut",
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP620+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.06278597500002547,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.06372694800001,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP635+4.p",
+    "runs": [
+      {
+        "elapsed_seconds": 1.782128193999995,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 1.0027209759999778,
+        "returncode": 7,
+        "status": "ResourceOut",
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP635+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.06423075500001119,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.06486894899998674,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP634+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.0863865470000178,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.09389409799999271,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP780+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.0690506589999984,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.0822648930000014,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP623+3.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.5756800689999864,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.5275592309999979,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP639+4.p",
+    "runs": [
+      {
+        "elapsed_seconds": 1.948730533999992,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 1.002641006999994,
+        "returncode": 7,
+        "status": "ResourceOut",
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP639+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.06005741000001308,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.061569157999997515,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP622+2.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.24714465399998176,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.2005711250000104,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP665+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.06964963900000498,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.07007606799999166,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP667+6.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.09408144299999321,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.08569552299996985,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP627+2.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.27832296700000825,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.2282376220000515,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP646+2.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.3038580020000268,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.2870714830000338,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP651+3.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.6388408340000069,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.626537978999977,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP649+4.p",
+    "runs": [
+      {
+        "elapsed_seconds": 1.551561549999974,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 1.0033005950000415,
+        "returncode": 7,
+        "status": "ResourceOut",
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP626+3.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.6235006870000461,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.5916111630000387,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP631+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.06888330100002804,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.0688251959999775,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP654+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.08027714100001049,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.08518865000002052,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP667+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.08130817300002491,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.07525062700000262,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP618+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.09113917099995206,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.08510574300004237,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP012+5.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.07871617000000697,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.08080016899998554,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP710+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.08182418100000177,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.08905388400000902,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP746+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.0811673229999883,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.07810191400000122,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP630+2.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.26759885100000247,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.24072160899999062,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP629+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.062415862000023026,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.06483685000000605,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP630+3.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.7107934460000251,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.6245841979999796,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP637+3.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.6694762629999786,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.65895184499999,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP646+4.p",
+    "runs": [
+      {
+        "elapsed_seconds": 1.6647603199999708,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 1.0023429519999922,
+        "returncode": 7,
+        "status": "ResourceOut",
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP636+4.p",
+    "runs": [
+      {
+        "elapsed_seconds": 2.148408322000023,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 1.0023388609999984,
+        "returncode": 7,
+        "status": "ResourceOut",
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP660+2.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.05435350400000516,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.06247638600001437,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP660+3.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.08262757800002873,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.08749137299997756,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP618+2.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.2197351319999825,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.2050767429999496,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP620+3.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.6617646759999616,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.6218675000000076,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP622+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.06095544999999447,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.06221677500002443,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP638+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.07777341400003479,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.08788763500001551,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP628+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.09738122800001747,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.07878746700004058,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP715+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.08247604899997896,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.091909051000016,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP646+3.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.6884465750000004,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.6469955869999922,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP664+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.06473174500001733,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.08580895699998337,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP637+4.p",
+    "runs": [
+      {
+        "elapsed_seconds": 1.8090226580000035,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 1.003323566000006,
+        "returncode": 7,
+        "status": "ResourceOut",
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP638+2.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.34042379599998185,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.31485573700001623,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP745+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.0625827850000178,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.08841968600000882,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP650+4.p",
+    "runs": [
+      {
+        "elapsed_seconds": 1.8320331099999976,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 1.0031268700000169,
+        "returncode": 7,
+        "status": "ResourceOut",
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP704+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.06588220700001557,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.06367988299996341,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP653+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.08907922199995255,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.08625014500000816,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP682+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.09413634499998125,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.08780123100001447,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP644+4.p",
+    "runs": [
+      {
+        "elapsed_seconds": 1.6300805679999826,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 1.0024399259999655,
+        "returncode": 7,
+        "status": "ResourceOut",
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP685+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.05951294499999449,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.062370541999996476,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP639+3.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.789052804999983,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.7147683950000214,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP777+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.06729412000004231,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.0902682600000162,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP627+4.p",
+    "runs": [
+      {
+        "elapsed_seconds": 1.5476153239999917,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 1.0026943469999878,
+        "returncode": 7,
+        "status": "ResourceOut",
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP634+4.p",
+    "runs": [
+      {
+        "elapsed_seconds": 1.5230012129999864,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 1.0028033670000127,
+        "returncode": 7,
+        "status": "ResourceOut",
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP656+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.05581680199998118,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.07169307600003094,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP775+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.0883208420000301,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.08859855500003277,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP637+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.10899949200000947,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.07835693300000912,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP641+2.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.26460363799998277,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.2592151210000111,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP629+3.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.5754771809999966,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.5666938930000356,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP650+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.06822254600001543,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.06495996800003923,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP636+3.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.7824951559999818,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.6962040299999899,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP625+4.p",
+    "runs": [
+      {
+        "elapsed_seconds": 1.5705675560000145,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 1.0027494379999666,
+        "returncode": 7,
+        "status": "ResourceOut",
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP643+2.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.22400904899996021,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.2187609220000013,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP628+3.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.6598196510000207,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.6387698209999826,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP632+2.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.24314810799995712,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.23478744500005178,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP642+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.06069185799998422,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.08431014000001369,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP194+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.11830875300000798,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.06781409699999585,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  },
+  {
+    "problem": "GRP646+1.p",
+    "runs": [
+      {
+        "elapsed_seconds": 0.09736099399998466,
+        "returncode": 8,
+        "status": "GaveUp",
+        "strategy": "auto_schedule",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      },
+      {
+        "elapsed_seconds": 0.10131000000001222,
+        "returncode": -6,
+        "status": null,
+        "strategy": "auto",
+        "success": false,
+        "timed_out": false,
+        "unsupported": false
+      }
+    ]
+  }
+]
