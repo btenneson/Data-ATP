@@ -1,0 +1,224 @@
+name: DATA-MIND 2.7 — Quotient Discovery — Depth n=6
+
+on:
+  push:
+    branches: [data-mind-2.7-quotient-discovery]
+    paths:
+      - '.github/workflows/data-mind-2-7-quotient-discovery-depth-n6.yml'
+      - 'experiments/data_mind_2_7_quotient_discovery_depths.py'
+      - 'src/data_atp/quotient_discovery.py'
+      - 'src/data_atp/events.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  R01_COMMIT: 953b0503b164cfc32ad939bef642d30781e6575e
+  P8038_COMMIT: 0e8110f6d4318c107454143b3cf43aa2cc500966
+
+jobs:
+  run:
+    name: Full 2.7 preflight + quotient discovery n=6
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Freeze benchmark and eight-agent dependency
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin "$R01_COMMIT"
+          mkdir -p "$RUNNER_TEMP/frozen" results
+          git show "$R01_COMMIT:benchmarks/notald_ocean_r01/scripts/generate_tied_ocean_v1.py" > "$RUNNER_TEMP/frozen/generate.py"
+          curl -fsSL "https://raw.githubusercontent.com/btenneson/ATP/$P8038_COMMIT/predator%208/recovered8_002/predator8_038_eight_agent_revision_fallback.py" -o "$RUNNER_TEMP/frozen/p8038.py"
+          {
+            echo "architecture=DATA-MIND 2.7 Quotient Discovery"
+            echo "benchmark_family=Depths/Ocean"
+            echo "target_depth_n=6"
+            echo "exact_reverse_distance_handed_to_qh=false"
+            echo "candidate_language=fixed-point shells + degree quotient + modular observables"
+            echo "target_wall_ceiling_s=600"
+            echo "r01_commit=$R01_COMMIT"
+            echo "p8038_commit=$P8038_COMMIT"
+            echo "data_atp_commit=$(git rev-parse HEAD)"
+            sha256sum "$RUNNER_TEMP/frozen"/*.py \
+              src/data_atp/quotient_discovery.py \
+              experiments/data_mind_2_7_quotient_discovery_depths.py
+          } | tee results/protocol.txt
+
+      - name: Compile DATA-MIND 2.7
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYTHONPATH="$GITHUB_WORKSPACE/src" python -m py_compile \
+            src/data_atp/quotient_discovery.py \
+            src/data_atp/mathematician_memory.py \
+            src/data_atp/events.py \
+            experiments/data_mind_ocean_full_feature.py \
+            experiments/data_mind_2_7_quotient_discovery_depths.py \
+            "$RUNNER_TEMP/frozen/p8038.py"
+
+      - name: Exercise inherited architecture before QH takeover
+        shell: bash
+        run: |
+          set -euo pipefail
+          python "$RUNNER_TEMP/frozen/generate.py" --out "$RUNNER_TEMP/preflight" --depths 25000 --seeds 12345
+          P=$(find "$RUNNER_TEMP/preflight/solver_inputs/standard" -name '*.p' | head -1)
+          mkdir -p results/preflight
+          PYTHONPATH="$GITHUB_WORKSPACE/src" python experiments/data_mind_2_7_quotient_discovery_depths.py \
+            --problem "$P" --reference benchmarks/ocean_reference/reference_solvers.py \
+            --p8038 "$RUNNER_TEMP/frozen/p8038.py" \
+            --out results/preflight/result.json --transactions results/preflight/transactions.jsonl \
+            --memory results/preflight/memory.jsonl --bank results/preflight/bank.jsonl \
+            --problem-id DEPTHS-2.7-PREFLIGHT-25000 --depth-n 25000 \
+            --time-limit 90 --max-expansions 5000000 --control-epoch 1000 \
+            --qd-warmup-expansions 20000 --qd-contract-threshold 0.95 \
+            --qd-fixed-point-window 2 --seed 2301
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('results/preflight/result.json').read_text())
+          assert r['architecture_version']=='2.7'
+          assert r['all_eight_pric_agents_enabled'] and r['quotient_hunter_enabled']
+          assert r['quotient_discovery_enabled'] and not r['exact_reverse_distance_handed_to_qh']
+          assert r['generated_candidate_count'] >= 11
+          assert r['selected_operator']=='target_predecessor_fixed_point'
+          assert r['qd_trade_activatable'] and r['qd_trade_independently_verified'] and r['qd_trade_active']
+          assert r['agent_message_count'] >= 8
+          assert r['professor_events'] >= 1 and r['counselor_events'] >= 1 and r['learning_events'] >= 1
+          assert r['adaptive_control_enabled'] and r['structured_creativity_enabled']
+          assert r['group_inverse_revision_enabled']
+          assert r['memory_hash_chain_valid'] and r['transaction_log_verified']
+          assert r['certificate_verified'] and r['status']=='PROVED' and r['proof_length']==25000
+          print('DATA-MIND 2.7 FULL ARCHITECTURE PREFLIGHT PASS')
+          PY
+
+      - name: Generate evaluator-audited Depth n=6 instance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python "$RUNNER_TEMP/frozen/generate.py" --out "$RUNNER_TEMP/depth6" --depths 6 --seeds 2301
+          P=$(find "$RUNNER_TEMP/depth6/solver_inputs/standard" -name '*.p' | head -1)
+          echo "DEPTH6_PROBLEM=$P" >> "$GITHUB_ENV"
+          sha256sum "$P" | tee results/depth6_problem_sha256.txt
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          key=json.loads((Path(os.environ['RUNNER_TEMP'])/'depth6/evaluator_only/answer_key.json').read_text())[0]
+          assert key['Lstar']==6 and key['bfs_verified_Lstar']==6
+          print('evaluator audit: exact shortest proof depth n=6')
+          PY
+
+      - name: Blind quotient-discovery unit check
+        shell: bash
+        run: |
+          PYTHONPATH="$GITHUB_WORKSPACE/src" python - <<'PY'
+          import importlib.util,os,sys
+          from pathlib import Path
+          from data_atp.quotient_discovery import QuotientDiscoveryEngine, independently_verify_discovered_rank
+          spec=importlib.util.spec_from_file_location('ref27',Path('benchmarks/ocean_reference/reference_solvers.py'))
+          ref=importlib.util.module_from_spec(spec); sys.modules['ref27']=ref; spec.loader.exec_module(ref)
+          source,target,edges,adj,_=ref.parse_problem(Path(os.environ['DEPTH6_PROBLEM']))
+          engine=QuotientDiscoveryEngine(source=source,target=target,edges=edges)
+          d=engine.discover()
+          assert d.hidden_metadata_read is False
+          assert d.exact_reverse_distance_handed_to_qh is False
+          assert d.generated_candidate_count >= 11
+          assert d.selected_operator=='target_predecessor_fixed_point'
+          assert d.selected_family=='fixed_point_shell'
+          assert d.source_horizon==6 and d.policy_path_verified and d.trade_activatable
+          q=next(r for r in d.reports if r.name==d.selected_operator)
+          assert q.lambda_h_bound is not None and abs(q.lambda_h_bound-(5/6)) < 1e-12
+          assert q.unique_policy_fixed_point
+          labels=engine.labels_for(d.selected_operator)
+          assert independently_verify_discovered_rank(source=source,target=target,edges=edges,labels=labels)
+          assert len(d.policy_path)-1==6
+          # At least one MIU-like modular hypothesis must have been generated and rejected.
+          mod3=next(r for r in d.reports if r.name=='node_id_mod_3')
+          assert not mod3.target_reachability_equivalence_certified
+          print('BLIND QUOTIENT DISCOVERY PASS',d.as_dict())
+          PY
+
+      - name: Run DATA-MIND 2.7 on Depth n=6
+        shell: bash
+        run: |
+          set +e
+          mkdir -p results/depth-n6
+          /usr/bin/time -f 'process_wall_s=%e\nmax_rss_kb=%M' -o results/depth-n6/process_time.txt \
+            timeout 660s env PYTHONPATH="$GITHUB_WORKSPACE/src" python experiments/data_mind_2_7_quotient_discovery_depths.py \
+              --problem "$DEPTH6_PROBLEM" --reference benchmarks/ocean_reference/reference_solvers.py \
+              --p8038 "$RUNNER_TEMP/frozen/p8038.py" \
+              --out results/depth-n6/result.json --transactions results/depth-n6/transactions.jsonl \
+              --memory results/depth-n6/memory.jsonl --bank results/depth-n6/bank.jsonl \
+              --problem-id DEPTHS-N6 --depth-n 6 --time-limit 600 --max-expansions 100000000 \
+              --control-epoch 2 --qd-warmup-expansions 0 --qd-contract-threshold 0.95 \
+              --qd-fixed-point-window 2 --seed 2301
+          RC=$?
+          echo "returncode=$RC" | tee results/depth-n6/returncode.txt
+          test -f results/depth-n6/result.json && cat results/depth-n6/result.json
+          exit 0
+
+      - name: Enforce n=6 discovery and verifier invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('results/depth-n6/result.json').read_text())
+          assert r['architecture_version']=='2.7' and r['depth_n']==6
+          assert r['hidden_metadata_read'] is False and not r['exact_reverse_distance_handed_to_qh']
+          assert r['generated_candidate_count'] >= 11
+          assert r['selected_operator']=='target_predecessor_fixed_point'
+          assert r['selected_family']=='fixed_point_shell'
+          assert r['source_horizon_discovered']==6
+          assert abs(r['selected_lambda_H_bound']-(5/6)) < 1e-12
+          assert r['selected_unique_policy_fixed_point']
+          assert r['qd_trade_activatable'] and r['qd_trade_independently_verified'] and r['qd_trade_active']
+          assert r['qd_policy_path_verified_structurally']
+          assert r['certificate_verified'] and r['status']=='PROVED' and r['proof_length']==6
+          assert r['bank_commit_written'] and r['bank_write_verifier_gated']
+          assert r['memory_hash_chain_valid'] and r['transaction_log_verified']
+          rejected=[x for x in r['candidate_reports'] if not x['target_reachability_equivalence_certified']]
+          assert len(rejected) >= 1
+          print('DEPTH n=6 DATA-MIND 2.7 QUOTIENT DISCOVERY PASS')
+          PY
+
+      - name: Verify BANK reuse
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results/depth-n6-bank-reuse
+          cp results/depth-n6/bank.jsonl results/depth-n6-bank-reuse/bank.jsonl
+          cp results/depth-n6/memory.jsonl results/depth-n6-bank-reuse/memory.jsonl
+          PYTHONPATH="$GITHUB_WORKSPACE/src" python experiments/data_mind_2_7_quotient_discovery_depths.py \
+            --problem "$DEPTH6_PROBLEM" --reference benchmarks/ocean_reference/reference_solvers.py \
+            --p8038 "$RUNNER_TEMP/frozen/p8038.py" \
+            --out results/depth-n6-bank-reuse/result.json \
+            --transactions results/depth-n6-bank-reuse/transactions.jsonl \
+            --memory results/depth-n6-bank-reuse/memory.jsonl --bank results/depth-n6-bank-reuse/bank.jsonl \
+            --problem-id DEPTHS-N6 --depth-n 6 --time-limit 600 --control-epoch 2 --seed 2301
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('results/depth-n6-bank-reuse/result.json').read_text())
+          assert r['bank_hit'] and r['certificate_verified'] and r['status']=='PROVED'
+          assert r['expansions']==0 and not r['bank_commit_written']
+          assert r['memory_hash_chain_valid'] and r['transaction_log_verified']
+          print('DATA-MIND 2.7 VERIFIED BANK REUSE PASS')
+          PY
+
+      - name: Upload DATA-MIND 2.7 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: data-mind-2.7-quotient-discovery-depth-n6-${{ github.run_id }}
+          path: results/
+          if-no-files-found: error
+          retention-days: 90
