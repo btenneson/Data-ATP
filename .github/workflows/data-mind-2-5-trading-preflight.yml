@@ -1,0 +1,45 @@
+name: DATA-MIND 2.5 Trading preflight
+
+on:
+  push:
+    branches: [data-mind-2.5-trading]
+    paths:
+      - 'src/data_atp/trading.py'
+      - 'experiments/data_mind_2_5_trading_mathematician.py'
+      - 'tests/test_trading.py'
+      - 'docs/DATA_MIND_2_5_TRADING_MATHEMATICIAN.md'
+      - '.github/workflows/data-mind-2-5-trading-preflight.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install package and test runner
+        run: python -m pip install -e . pytest
+
+      - name: Compile 2.5 trading sources
+        run: |
+          python -m py_compile \
+            src/data_atp/trading.py \
+            experiments/data_mind_2_5_trading_mathematician.py
+
+      - name: Test trading invariants
+        run: python -m pytest -q tests/test_trading.py
+
+      - name: Record source hashes
+        run: |
+          sha256sum \
+            src/data_atp/trading.py \
+            experiments/data_mind_2_5_trading_mathematician.py \
+            tests/test_trading.py \
+            docs/DATA_MIND_2_5_TRADING_MATHEMATICIAN.md
