@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   actions: read
 
 env:
@@ -98,6 +98,72 @@ jobs:
           print('actual_fraction=',m['actual_training_fraction'])
           print('leakage_audit=VERIFIED')
           PY
+
+      - name: Persist exact training corpus to GitHub
+        shell: bash
+        run: |
+          set -euo pipefail
+          SNAP="training_snapshots/dm27_tptp95_proof_density_6h_001"
+          rm -rf "$SNAP"
+          mkdir -p "$SNAP/Problems/$DOMAIN" "$SNAP/Axioms" "$SNAP/metadata"
+          python - <<'PY'
+          import json, re, shutil
+          from pathlib import Path
+
+          root = Path(__import__('os').environ['TPTP_ROOT'])
+          domain = __import__('os').environ['DOMAIN']
+          snap = Path('training_snapshots/dm27_tptp95_proof_density_6h_001')
+          manifest = json.loads(Path('results/education/split_manifest.json').read_text())
+          include_re = re.compile(r"include\(\s*['\"]Axioms/([^'\"]+)")
+
+          queue = []
+          for name in manifest['training_files']:
+              src = root / 'Problems' / domain / name
+              dst = snap / 'Problems' / domain / name
+              dst.parent.mkdir(parents=True, exist_ok=True)
+              shutil.copy2(src, dst)
+              queue.extend(include_re.findall(src.read_text(encoding='utf-8', errors='replace')))
+
+          seen = set()
+          while queue:
+              rel = queue.pop()
+              if rel in seen:
+                  continue
+              seen.add(rel)
+              src = root / 'Axioms' / rel
+              if not src.is_file():
+                  raise RuntimeError(f'missing referenced axiom while snapshotting: {rel}')
+              dst = snap / 'Axioms' / rel
+              dst.parent.mkdir(parents=True, exist_ok=True)
+              shutil.copy2(src, dst)
+              queue.extend(include_re.findall(src.read_text(encoding='utf-8', errors='replace')))
+
+          for name in ['split_manifest.json','result.json','tptp95_policy.json','education_records.json','TRAINING_COMPLETE']:
+              src = Path('results/education') / name
+              if src.exists():
+                  shutil.copy2(src, snap / 'metadata' / name)
+
+          readme = (
+              '# DATA-MIND 2.7 TPTP 95% training snapshot\n\n'
+              f"TPTP release: {manifest['tptp_declared_version']}\n\n"
+              f"Domain: {manifest['domain']}\n\n"
+              f"Random held-out target: {manifest['target']}\n\n"
+              f"Training files: {manifest['training_count']}\n\n"
+              f"Holdout files: {manifest['holdout_count']}\n\n"
+              f"Seed: {manifest['seed']}\n\n"
+              'The held-out target and same-abstract-problem variants are not present in the training problem directory. '
+              'Axioms contains the recursively referenced axiom closure needed by the saved training problems.\n'
+          )
+          (snap / 'README.md').write_text(readme, encoding='utf-8')
+          print('snapshot_training_files=', manifest['training_count'])
+          print('snapshot_axiom_files=', len(seen))
+          PY
+          find "$SNAP" -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > "$SNAP/SHA256SUMS"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$SNAP"
+          git commit -m "Save DATA-MIND 2.7 TPTP 95% training snapshot [skip ci]"
+          git push origin HEAD:experiment/dm27-tptp95-proof-density-6h-001
 
       - name: Run six-hour objective-guided held-out examination
         shell: bash
