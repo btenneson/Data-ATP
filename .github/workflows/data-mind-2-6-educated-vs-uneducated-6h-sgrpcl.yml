@@ -1,0 +1,221 @@
+name: DATA-MIND 2.6 — Educated vs Uneducated — 6h sgrpcl
+
+on:
+  push:
+    branches: [data-mind-2.6-quotient-hunter]
+    paths:
+      - '.github/workflows/data-mind-2-6-educated-vs-uneducated-6h-sgrpcl.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  ATP_COMMIT: ad2300ab1a47119f93f3417bc52c348f87e57c62
+  SETMM_COMMIT: cd577894d8e6bf8b4fe8014c0d525d531507e4b7
+  SETMM_SHA256: 1016d7edb0508abde0fe240bb5243e588c5067f8cb10ee6e1cc5733fc05acdb5
+  TARGET: sgrpcl
+  PROBLEM_ID: DM-PB-0001
+  BUDGET: '500000'
+  WALL_SECONDS: '21600'
+  SEED: '2301'
+  CONTROL_INTERVAL: '100'
+  ADULT_FAILURE_STALE: '1000'
+  CHILD_TRIAL_EXPANSIONS: '800'
+  CHILD_COOLDOWN_EXPANSIONS: '1000'
+  TRAINING_RUN_ID: '33415636479'
+  TRAINING_ARTIFACT: data-mind-2.6-setmm95-pretraining-33415636479
+  TRAINING_MODEL_SHA256: 44e19b4bc0a12246dfc22f2b76a64376af4870cb198094d0be4e7cad3d809e48
+  RANKER_FILE_SHA256: 45e4eb417186257799a2e985ecd7f16c43b49c067f55f0ff7e19f5681c09472c
+
+jobs:
+  compare:
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include:
+          - id: dm26-uneducated-6h
+            educated: false
+            label: DATA-MIND 2.6 uneducated 6h
+          - id: dm26-educated95-6h
+            educated: true
+            label: DATA-MIND 2.6 frozen 95% educated 6h
+    name: ${{ matrix.id }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 370
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/checkout@v4
+        with:
+          repository: btenneson/ATP
+          ref: ${{ env.ATP_COMMIT }}
+          path: upstream_atp
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Retrieve frozen 95% education checkpoint
+        if: matrix.educated == true
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.TRAINING_ARTIFACT }}
+          path: checkpoint
+          github-token: ${{ github.token }}
+          repository: btenneson/Data-ATP
+          run-id: ${{ env.TRAINING_RUN_ID }}
+
+      - name: Freeze theorem environment and verify protocol
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="results/${{ matrix.id }}"
+          mkdir -p "$OUT"
+          curl -L --retry 3 --fail -o 'upstream_atp/predator 8/set.mm' \
+            "https://raw.githubusercontent.com/metamath/set.mm/$SETMM_COMMIT/set.mm"
+          test "$(sha256sum 'upstream_atp/predator 8/set.mm' | awk '{print $1}')" = "$SETMM_SHA256"
+          if [ '${{ matrix.educated }}' = 'true' ]; then
+            test "$(sha256sum checkpoint/ranker95.json | awk '{print $1}')" = "$RANKER_FILE_SHA256"
+            python - <<'PY'
+          import json,os
+          from pathlib import Path
+          r=json.loads(Path('checkpoint/result.json').read_text())
+          q=json.loads(Path('checkpoint/ranker95.json').read_text())
+          assert r['status']=='TRAINING_COMPLETE'
+          assert r['architecture_version']=='2.6' and r['architecture_changed'] is False
+          assert r['target']=='sgrpcl' and r['leakage_audit_passed'] is True
+          assert r['model_sha256']==os.environ['TRAINING_MODEL_SHA256']
+          assert q['architecture_version']=='2.6' and q['changes_solver_architecture'] is False
+          assert q['learner_target_statement_exposed'] is False
+          assert q['learner_target_proof_exposed'] is False
+          assert abs(float(q['training_fraction_of_target_clean_corpus'])-.95)<1e-12
+          print('Frozen education checkpoint: VERIFIED')
+          PY
+          fi
+          PYTHONPATH="$GITHUB_WORKSPACE/src" python -m py_compile \
+            experiments/data_mind_2_6_integrated_semigroup.py \
+            experiments/data_mind_2_6_educated_ranker_adapter.py \
+            experiments/data_mind_2_4_mathematician_shortcuts.py \
+            experiments/data_mind_2_2_2_3_actual_knob_controller_v2.py \
+            experiments/data_mind_2_2_2_3_actual_knob_controller.py \
+            src/data_atp/mathematician_memory.py src/data_atp/events.py \
+            upstream_atp/metamath.py upstream_atp/setmm_grammar.py \
+            'upstream_atp/predator 8/predator 8.007-R3I4-dvcoherent-imagination.py'
+          {
+            echo 'architecture=DATA-MIND 2.6'
+            echo 'architecture_changed=false'
+            echo 'target=sgrpcl'
+            echo 'comparison_goal=mathematical transfer/settlement, not sprint speed'
+            echo 'wall_seconds=21600'
+            echo 'budget=500000'
+            echo 'seed=2301'
+            echo 'educated=${{ matrix.educated }}'
+            echo 'same_solver_architecture=true'
+          } | tee "$OUT/protocol.txt"
+
+      - name: Run six-hour theorem examination
+        shell: bash
+        run: |
+          set +e
+          set -uo pipefail
+          OUT="results/${{ matrix.id }}"
+          COMMON=(
+            --version 2.4
+            --problem-id "$PROBLEM_ID"
+            --run-id "${{ matrix.id }}-${GITHUB_RUN_ID}"
+            --memory "$OUT/memory.jsonl"
+            --shortcut-ledger "$OUT/shortcut_ledger.jsonl"
+            --exposure-ledger "$OUT/exposure_ledger.jsonl"
+            --module-ledger "$OUT/module_diagnostics.jsonl"
+            --module-probe-log-step 0.12
+            --module-quality-epsilon 0.01
+            --module-log-bound 1.0
+            --module-probe-every 1
+            --qh-min-samples 18
+            --qh-min-abs-corr 0.25
+            --qh-step 0.006
+            --shortcut-step 0.0125
+            --shortcut-min-confidence 0.08
+            --shortcut-top-k 8
+            --distant-probability 0.05
+            --atp-root "$GITHUB_WORKSPACE/upstream_atp"
+            --setmm "$GITHUB_WORKSPACE/upstream_atp/predator 8/set.mm"
+            --target "$TARGET"
+            --budget "$BUDGET"
+            --max-depth 12
+            --agents 4
+            --creativity 0.55
+            --seed "$SEED"
+            --opener-cap 48
+            --max-open 8
+            --progress 100
+            --control-interval "$CONTROL_INTERVAL"
+            --adult-step 0.025
+            --adult-failure-stale "$ADULT_FAILURE_STALE"
+            --child-trial-expansions "$CHILD_TRIAL_EXPANSIONS"
+            --child-cooldown-expansions "$CHILD_COOLDOWN_EXPANSIONS"
+            --out "$OUT/candidate.mm"
+            --transactions "$OUT/transactions.jsonl"
+            --summary "$OUT/pre_external_summary.json"
+          )
+          if [ '${{ matrix.educated }}' = 'true' ]; then
+            CMD=(python -u experiments/data_mind_2_6_educated_ranker_adapter.py \
+              --educated-ranker "$GITHUB_WORKSPACE/checkpoint/ranker95.json" \
+              --education-blend 1.0 "${COMMON[@]}")
+          else
+            CMD=(python -u experiments/data_mind_2_6_integrated_semigroup.py "${COMMON[@]}")
+          fi
+          /usr/bin/time -f 'process_wall_s=%e\nmax_rss_kb=%M' -o "$OUT/process_time.txt" \
+            timeout "$WALL_SECONDS" env PYTHONPATH="$GITHUB_WORKSPACE/src" "${CMD[@]}" \
+            2>&1 | tee "$OUT/search.log"
+          RC=${PIPESTATUS[0]}
+          echo "returncode=$RC" | tee "$OUT/run_status.txt"
+          exit 0
+
+      - name: Independent contextual Metamath verification
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          set -o pipefail
+          OUT="results/${{ matrix.id }}"
+          if [ ! -s "$OUT/candidate.mm" ]; then
+            echo 'No candidate certificate emitted.' | tee "$OUT/external_cv.log"
+            echo 'returncode=2' > "$OUT/external_cv_status.txt"
+            exit 0
+          fi
+          python - "$OUT" "$TARGET" <<'PY' 2>&1 | tee "$OUT/external_cv.log"
+          import re,sys
+          from pathlib import Path
+          out=Path(sys.argv[1]); target=sys.argv[2]
+          env=Path('upstream_atp/predator 8/set.mm').read_text(encoding='utf-8')
+          cand=(out/'candidate.mm').read_text(encoding='utf-8')
+          proofs=list(re.finditer(r'\$=\s*(.*?)\s*\$\.',cand,re.S))
+          if len(proofs)!=1: raise SystemExit(f'expected one candidate proof, found {len(proofs)}')
+          proof=proofs[0].group(1).strip()
+          pat=re.compile(rf'(?ms)(^[ \t]*{re.escape(target)}[ \t]+\$p\b.*?\$=\s*)(.*?)(\s*\$\.)')
+          hits=list(pat.finditer(env))
+          if len(hits)!=1: raise SystemExit(f'expected one target theorem, found {len(hits)}')
+          m=hits[0]
+          (out/'candidate_context.mm').write_text(env[:m.start(2)] + proof + env[m.end(2):],encoding='utf-8')
+          print('candidate_proof_tokens=',len(proof.split()))
+          PY
+          PREP=${PIPESTATUS[0]}
+          if [ "$PREP" -ne 0 ]; then echo "returncode=$PREP" > "$OUT/external_cv_status.txt"; exit 0; fi
+          python -u upstream_atp/metamath.py verify "$OUT/candidate_context.mm" 2>&1 | tee -a "$OUT/external_cv.log"
+          RC=${PIPESTATUS[0]}
+          echo "returncode=$RC" > "$OUT/external_cv_status.txt"
+          exit 0
+
+      - name: Upload long-run evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: data-mind-2.6-6h-sgrpcl-${{ matrix.id }}-${{ github.run_id }}
+          path: results/${{ matrix.id }}/
+          if-no-files-found: error
+          retention-days: 90
