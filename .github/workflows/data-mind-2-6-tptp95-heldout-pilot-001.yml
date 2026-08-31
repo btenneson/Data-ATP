@@ -59,7 +59,8 @@ jobs:
             --output "$ARCHIVE" "$URL"
           test -s "$ARCHIVE"
           echo "archive_bytes=$(stat -c%s "$ARCHIVE")"
-          tar -tzf "$ARCHIVE" | grep -q "TPTP-v${TPTP_VERSION}/Problems/${DOMAIN}/"
+          tar -tzf "$ARCHIVE" "TPTP-v${TPTP_VERSION}/Problems/${DOMAIN}/${TARGET}" >/dev/null
+          echo "download_complete_and_target_verified=true"
 
       - name: Acquire frozen TPTP GRP FOF corpus from archive
         shell: bash
