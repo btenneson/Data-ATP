@@ -48,18 +48,36 @@ jobs:
           python -m pip install --disable-pip-version-check -q numpy
           eprover --version | head -20
 
-      - name: Download frozen TPTP release first
+      - name: Resolve and download official frozen TPTP release
         shell: bash
         run: |
           set -euo pipefail
           ARCHIVE="TPTP-v${TPTP_VERSION}.tgz"
-          URL="https://tptp.org/TPTP/${ARCHIVE}"
-          echo "Downloading official frozen release: $URL"
+          INDEX="https://tptp.cs.miami.edu/TPTP/"
+          echo "Reading official TPTP index: $INDEX"
+          curl -fL --retry 5 --retry-delay 5 --connect-timeout 30 \
+            --output tptp-index.html "$INDEX"
+          URL=$(python - <<'PY'
+          import os, re
+          from pathlib import Path
+          from urllib.parse import urljoin
+          archive = f"TPTP-v{os.environ['TPTP_VERSION']}.tgz"
+          index = "https://tptp.cs.miami.edu/TPTP/"
+          html = Path('tptp-index.html').read_text(encoding='utf-8', errors='replace')
+          hrefs = re.findall(r'href=["\']([^"\']+)["\']', html, flags=re.I)
+          matches = [urljoin(index, h) for h in hrefs if archive in h]
+          if not matches:
+              raise SystemExit(f'Official index did not expose a link containing {archive}')
+          print(matches[0])
+          PY
+          )
+          echo "Resolved official archive URL: $URL"
           curl -fL --retry 5 --retry-delay 5 --connect-timeout 30 \
             --output "$ARCHIVE" "$URL"
           test -s "$ARCHIVE"
           echo "archive_bytes=$(stat -c%s "$ARCHIVE")"
           tar -tzf "$ARCHIVE" | grep -q "TPTP-v${TPTP_VERSION}/Problems/${DOMAIN}/"
+          rm -f tptp-index.html
 
       - name: Acquire frozen TPTP GRP FOF corpus from archive
         shell: bash
