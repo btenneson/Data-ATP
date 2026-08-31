@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from enum import StrEnum
+import copy
 import hashlib
 import json
 import os
@@ -55,6 +56,12 @@ class TransactionLog:
     Passing ``path`` makes each accepted append durable before it is exposed to
     callers. Existing JSONL logs are reloaded and verified on construction;
     malformed or hash-inconsistent logs fail closed.
+
+    Payloads are deep-copied at append time. This is necessary because control
+    events often contain nested mutable dictionaries (for example live strategy
+    weights). Without a deep snapshot, later controller mutations can change the
+    in-memory payload after its digest was computed, causing a false hash-chain
+    failure even though the persisted JSONL is intact.
     """
 
     def __init__(self, path: str | Path | None = None) -> None:
@@ -157,11 +164,12 @@ class TransactionLog:
         sequence = len(self._items)
         timestamp = datetime.now(timezone.utc).isoformat()
         previous_hash = self.last_digest
-        digest = self._digest(sequence, event_type, payload, timestamp, previous_hash)
+        frozen_payload = copy.deepcopy(payload)
+        digest = self._digest(sequence, event_type, frozen_payload, timestamp, previous_hash)
         tx = Transaction(
             sequence=sequence,
             event_type=event_type,
-            payload=dict(payload),
+            payload=frozen_payload,
             timestamp_utc=timestamp,
             previous_hash=previous_hash,
             digest=digest,
