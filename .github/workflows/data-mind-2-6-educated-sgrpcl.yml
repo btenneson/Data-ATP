@@ -1,0 +1,277 @@
+name: DATA-MIND 2.6 — 95% Educated — sgrpcl
+
+on:
+  push:
+    branches: [data-mind-2.6-quotient-hunter]
+    paths:
+      - '.github/workflows/data-mind-2-6-educated-sgrpcl.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  ATP_COMMIT: ad2300ab1a47119f93f3417bc52c348f87e57c62
+  SETMM_COMMIT: cd577894d8e6bf8b4fe8014c0d525d531507e4b7
+  SETMM_SHA256: 1016d7edb0508abde0fe240bb5243e588c5067f8cb10ee6e1cc5733fc05acdb5
+  TARGET: sgrpcl
+  PROBLEM_ID: DM-PB-0001
+  BUDGET: '60000'
+  WALL_SECONDS: '600'
+  SEED: '2301'
+  CONTROL_INTERVAL: '100'
+  ADULT_FAILURE_STALE: '1000'
+  CHILD_TRIAL_EXPANSIONS: '800'
+  CHILD_COOLDOWN_EXPANSIONS: '1000'
+  TRAINING_RUN_ID: '33415636479'
+  TRAINING_ARTIFACT: data-mind-2.6-setmm95-pretraining-33415636479
+  TRAINING_MODEL_SHA256: 44e19b4bc0a12246dfc22f2b76a64376af4870cb198094d0be4e7cad3d809e48
+  RANKER_FILE_SHA256: 45e4eb417186257799a2e985ecd7f16c43b49c067f55f0ff7e19f5681c09472c
+
+jobs:
+  educated:
+    name: dm26-educated95
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/checkout@v4
+        with:
+          repository: btenneson/ATP
+          ref: ${{ env.ATP_COMMIT }}
+          path: upstream_atp
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Retrieve frozen 95% education checkpoint
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.TRAINING_ARTIFACT }}
+          path: checkpoint
+          github-token: ${{ github.token }}
+          repository: btenneson/Data-ATP
+          run-id: ${{ env.TRAINING_RUN_ID }}
+
+      - name: Verify frozen education and theorem environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT='results/dm26-educated95'
+          mkdir -p "$OUT"
+          curl -L --retry 3 --fail -o 'upstream_atp/predator 8/set.mm' \
+            "https://raw.githubusercontent.com/metamath/set.mm/$SETMM_COMMIT/set.mm"
+          test "$(sha256sum 'upstream_atp/predator 8/set.mm' | awk '{print $1}')" = "$SETMM_SHA256"
+          test "$(sha256sum checkpoint/ranker95.json | awk '{print $1}')" = "$RANKER_FILE_SHA256"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          r=json.loads(Path('checkpoint/result.json').read_text())
+          q=json.loads(Path('checkpoint/ranker95.json').read_text())
+          assert r['status']=='TRAINING_COMPLETE'
+          assert r['architecture_version']=='2.6' and r['architecture_changed'] is False
+          assert r['target']=='sgrpcl' and r['leakage_audit_passed'] is True
+          assert r['model_sha256']==os.environ['TRAINING_MODEL_SHA256']
+          assert q['architecture_version']=='2.6' and q['changes_solver_architecture'] is False
+          assert q['target']=='sgrpcl'
+          assert q['learner_target_statement_exposed'] is False
+          assert q['learner_target_proof_exposed'] is False
+          assert abs(float(q['training_fraction_of_target_clean_corpus'])-.95)<1e-12
+          print('Frozen education checkpoint: VERIFIED')
+          print('Studied fraction:', q['training_fraction_of_target_clean_corpus'])
+          print('Training model SHA256:', r['model_sha256'])
+          PY
+          PYTHONPATH="$GITHUB_WORKSPACE/src" python -m py_compile \
+            experiments/data_mind_2_6_educated_ranker_adapter.py \
+            experiments/data_mind_2_6_integrated_semigroup.py \
+            experiments/data_mind_2_4_mathematician_shortcuts.py \
+            experiments/data_mind_2_2_2_3_actual_knob_controller_v2.py \
+            experiments/data_mind_2_2_2_3_actual_knob_controller.py \
+            src/data_atp/mathematician_memory.py src/data_atp/events.py \
+            upstream_atp/metamath.py upstream_atp/setmm_grammar.py \
+            'upstream_atp/predator 8/predator 8.007-R3I4-dvcoherent-imagination.py'
+          {
+            echo 'architecture=DATA-MIND 2.6'
+            echo 'architecture_changed=false'
+            echo 'education=95% target-clean set.mm frozen checkpoint'
+            echo "training_run_id=$TRAINING_RUN_ID"
+            echo "training_model_sha256=$TRAINING_MODEL_SHA256"
+            echo "ranker_file_sha256=$RANKER_FILE_SHA256"
+            echo "target=$TARGET"
+            echo "budget=$BUDGET"
+            echo "wall_seconds=$WALL_SECONDS"
+            echo "seed=$SEED"
+            echo 'education_blend=1.0'
+            echo 'comparison_reference_run=33409499825 dm26-adaptive'
+            echo "atp_commit=$ATP_COMMIT"
+            echo "data_atp_commit=$(git rev-parse HEAD)"
+            echo "setmm_commit=$SETMM_COMMIT"
+          } | tee "$OUT/protocol.txt"
+
+      - name: Repeat sgrpcl with frozen education
+        shell: bash
+        run: |
+          set +e
+          set -uo pipefail
+          OUT='results/dm26-educated95'
+          /usr/bin/time -f 'process_wall_s=%e\nmax_rss_kb=%M' -o "$OUT/process_time.txt" \
+            timeout "$WALL_SECONDS" env PYTHONPATH="$GITHUB_WORKSPACE/src" \
+              python -u experiments/data_mind_2_6_educated_ranker_adapter.py \
+                --educated-ranker "$GITHUB_WORKSPACE/checkpoint/ranker95.json" \
+                --education-blend 1.0 \
+                --version 2.4 \
+                --problem-id "$PROBLEM_ID" \
+                --run-id "dm26-educated95-${GITHUB_RUN_ID}" \
+                --memory "$OUT/memory.jsonl" \
+                --shortcut-ledger "$OUT/shortcut_ledger.jsonl" \
+                --exposure-ledger "$OUT/exposure_ledger.jsonl" \
+                --module-ledger "$OUT/module_diagnostics.jsonl" \
+                --module-probe-log-step 0.12 \
+                --module-quality-epsilon 0.01 \
+                --module-log-bound 1.0 \
+                --module-probe-every 1 \
+                --qh-min-samples 18 \
+                --qh-min-abs-corr 0.25 \
+                --qh-step 0.006 \
+                --shortcut-step 0.0125 \
+                --shortcut-min-confidence 0.08 \
+                --shortcut-top-k 8 \
+                --distant-probability 0.05 \
+                --atp-root "$GITHUB_WORKSPACE/upstream_atp" \
+                --setmm "$GITHUB_WORKSPACE/upstream_atp/predator 8/set.mm" \
+                --target "$TARGET" \
+                --budget "$BUDGET" \
+                --max-depth 12 \
+                --agents 4 \
+                --creativity 0.55 \
+                --seed "$SEED" \
+                --opener-cap 48 \
+                --max-open 8 \
+                --progress 100 \
+                --control-interval "$CONTROL_INTERVAL" \
+                --adult-step 0.025 \
+                --adult-failure-stale "$ADULT_FAILURE_STALE" \
+                --child-trial-expansions "$CHILD_TRIAL_EXPANSIONS" \
+                --child-cooldown-expansions "$CHILD_COOLDOWN_EXPANSIONS" \
+                --out "$OUT/candidate.mm" \
+                --transactions "$OUT/transactions.jsonl" \
+                --summary "$OUT/pre_external_summary.json" \
+            2>&1 | tee "$OUT/search.log"
+          RC=${PIPESTATUS[0]}
+          echo "returncode=$RC" | tee "$OUT/run_status.txt"
+          exit 0
+
+      - name: Independent contextual Metamath verification
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          set -o pipefail
+          OUT='results/dm26-educated95'
+          if [ ! -s "$OUT/candidate.mm" ]; then
+            echo 'No candidate certificate emitted.' | tee "$OUT/external_cv.log"
+            echo 'returncode=2' > "$OUT/external_cv_status.txt"
+            exit 0
+          fi
+          python - "$OUT" "$TARGET" <<'PY' 2>&1 | tee "$OUT/external_cv.log"
+          import re,sys
+          from pathlib import Path
+          out=Path(sys.argv[1]); target=sys.argv[2]
+          env=Path('upstream_atp/predator 8/set.mm').read_text(encoding='utf-8')
+          cand=(out/'candidate.mm').read_text(encoding='utf-8')
+          proofs=list(re.finditer(r'\$=\s*(.*?)\s*\$\.',cand,re.S))
+          if len(proofs)!=1: raise SystemExit(f'expected one candidate proof, found {len(proofs)}')
+          proof=proofs[0].group(1).strip()
+          pat=re.compile(rf'(?ms)(^[ \t]*{re.escape(target)}[ \t]+\$p\b.*?\$=\s*)(.*?)(\s*\$\.)')
+          hits=list(pat.finditer(env))
+          if len(hits)!=1: raise SystemExit(f'expected one target theorem, found {len(hits)}')
+          m=hits[0]
+          (out/'candidate_context.mm').write_text(env[:m.start(2)] + proof + env[m.end(2):],encoding='utf-8')
+          print('candidate_proof_tokens=',len(proof.split()))
+          PY
+          PREP=${PIPESTATUS[0]}
+          if [ "$PREP" -ne 0 ]; then echo "returncode=$PREP" > "$OUT/external_cv_status.txt"; exit 0; fi
+          python -u upstream_atp/metamath.py verify "$OUT/candidate_context.mm" 2>&1 | tee -a "$OUT/external_cv.log"
+          RC=${PIPESTATUS[0]}
+          echo "returncode=$RC" > "$OUT/external_cv_status.txt"
+          exit 0
+
+      - name: Finalize scientific result
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT='results/dm26-educated95'
+          PYTHONPATH="$GITHUB_WORKSPACE/src" python - "$OUT" "$BUDGET" "$SEED" "$WALL_SECONDS" <<'PY'
+          import json,re,sys,os
+          from pathlib import Path
+          from data_atp.events import EventType,TransactionLog
+          from data_atp.mathematician_memory import AppendOnlyMemoryStore
+          out=Path(sys.argv[1]); budget=int(sys.argv[2]); seed=int(sys.argv[3]); wall=int(sys.argv[4])
+          pre=json.loads((out/'pre_external_summary.json').read_text()) if (out/'pre_external_summary.json').exists() else {}
+          train=json.loads(Path('checkpoint/result.json').read_text())
+          def rc(path):
+              if not path.exists(): return None
+              m=re.search(r'returncode=(\d+)',path.read_text())
+              return int(m.group(1)) if m else None
+          run_rc=rc(out/'run_status.txt'); cv_rc=rc(out/'external_cv_status.txt')
+          candidate=(out/'candidate.mm').exists() and (out/'candidate.mm').stat().st_size>0
+          verified=bool(candidate and cv_rc==0)
+          log=TransactionLog(out/'transactions.jsonl')
+          if verified:
+              log.append(EventType.VERIFIER_ACCEPTED,{'target':'sgrpcl','authority':'external_sovereign_verifier'})
+              log.append(EventType.ACTION_EXECUTED,{'kind':'bank_commit','target':'sgrpcl','gate':'independent_verifier_accepted'})
+          elif candidate:
+              log.append(EventType.VERIFIER_REJECTED,{'target':'sgrpcl','external_returncode':cv_rc})
+          else:
+              log.append(EventType.SELF_REPORT_FILED,{'kind':'no_candidate','target':'sgrpcl','run_returncode':run_rc})
+          status='PROVED' if verified else ('VERIFIER_REJECTED' if candidate else ('TIMEOUT' if run_rc==124 else ('BOUNDED_UNKNOWN' if run_rc==1 else 'NO_VERIFIED_CERTIFICATE')))
+          mem=AppendOnlyMemoryStore(out/'memory.jsonl')
+          result=dict(pre)
+          result.update({
+              'solver':'DATA-MIND 2.6 + frozen 95% education',
+              'id':'dm26-educated95','architecture_version':'2.6','architecture_changed':False,
+              'target':'sgrpcl','status':status,'certificate_verified':verified,
+              'candidate_emitted':candidate,'run_returncode':run_rc,
+              'independent_context_verifier_returncode':cv_rc,
+              'transaction_log_verified':log.verify(),'memory_hash_chain_valid':mem.verify(),
+              'bank_commit_written':verified,'bank_commit_verifier_gated':True,
+              'budget':budget,'seed':seed,'wall_seconds':wall,'fresh_memory':True,
+              'scientific_endpoint_met':verified,
+              'shared_kernel':'pinned Predator 8.007 R3/I4 DV-coherent kernel',
+              'education_training_run_id':33415636479,
+              'education_training_model_sha256':train['model_sha256'],
+              'education_studied_theorems':train['studied_theorems'],
+              'education_admissible_target_clean_theorems':train['admissible_target_clean_theorems'],
+              'education_leakage_audit_passed':train['leakage_audit_passed'],
+              'comparison_reference_run_id':33409499825,
+              'comparison_reference_arm':'dm26-adaptive',
+          })
+          (out/'result.json').write_text(json.dumps(result,indent=2)+'\n')
+          print(json.dumps(result,indent=2))
+          assert result['architecture_version']=='2.6' and result['architecture_changed'] is False
+          assert result['education_leakage_audit_passed'] is True
+          assert result.get('education_checkpoint_loaded') is True
+          assert result.get('education_target_statement_exposed_during_training') is False
+          assert result.get('education_target_proof_exposed_during_training') is False
+          assert result.get('creativity_11d_knobs_internal_to_creativity') is True
+          assert result.get('correctness_spine_outside_optimizer') is True
+          assert result.get('structural_qh_enabled') is True
+          assert result.get('verifier_module_gain') is None
+          assert result.get('bank_gate_module_gain') is None
+          if not result['transaction_log_verified'] or not result['memory_hash_chain_valid']:
+              raise SystemExit(3)
+          PY
+
+      - name: Upload educated solver evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: data-mind-2.6-educated95-sgrpcl-${{ github.run_id }}
+          path: results/dm26-educated95/
+          if-no-files-found: error
+          retention-days: 90
