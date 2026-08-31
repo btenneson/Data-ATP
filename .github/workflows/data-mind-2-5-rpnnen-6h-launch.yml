@@ -1,0 +1,282 @@
+name: DATA-MIND 2.5 — Trading Mathematician — rpnnen 6h launch
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/data-mind-2-5-rpnnen-6h-launch.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  DATA_ATP_REF: data-mind-2.5-trading
+  ATP_COMMIT: ad2300ab1a47119f93f3417bc52c348f87e57c62
+  SETMM_COMMIT: cd577894d8e6bf8b4fe8014c0d525d531507e4b7
+  SETMM_SHA256: 1016d7edb0508abde0fe240bb5243e588c5067f8cb10ee6e1cc5733fc05acdb5
+  TARGET: rpnnen
+  PROBLEM_ID: HALO-FIRST-BIG-LEMMA-RPNNEN
+  BUDGET: '300000'
+  SEED: '2301'
+  WALL_SECONDS: '21400'
+  ADAPTER: experiments/data_mind_2_5_trading_mathematician.py
+  CONTROL_INTERVAL: '250'
+  ADULT_STEP: '0.025'
+  ADULT_FAILURE_STALE: '6000'
+  CHILD_TRIAL_EXPANSIONS: '12000'
+  CHILD_COOLDOWN_EXPANSIONS: '12000'
+  SHORTCUT_STEP: '0.0125'
+  SHORTCUT_MIN_CONFIDENCE: '0.08'
+  SHORTCUT_TOP_K: '8'
+  DISTANT_PROBABILITY: '0.05'
+
+jobs:
+  run:
+    name: DATA-MIND 2.5 The Trading Mathematician — rpnnen
+    runs-on: ubuntu-24.04
+    timeout-minutes: 370
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DATA_ATP_REF }}
+
+      - uses: actions/checkout@v4
+        with:
+          repository: btenneson/ATP
+          ref: ${{ env.ATP_COMMIT }}
+          path: upstream_atp
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Freeze architecture and theorem source
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="results/data-mind-2.5-rpnnen"
+          mkdir -p "$OUT" prior_artifacts seed_logs
+          curl -L --retry 3 --fail -o 'upstream_atp/predator 8/set.mm' \
+            "https://raw.githubusercontent.com/metamath/set.mm/$SETMM_COMMIT/set.mm"
+          test "$(sha256sum 'upstream_atp/predator 8/set.mm' | awk '{print $1}')" = "$SETMM_SHA256"
+          PYTHONPATH="$GITHUB_WORKSPACE/src" python -m py_compile \
+            "$ADAPTER" experiments/data_mind_2_4_mathematician_shortcuts.py \
+            src/data_atp/trading.py src/data_atp/mathematician_memory.py \
+            experiments/data_mind_2_2_2_3_actual_knob_controller.py \
+            experiments/data_mind_2_2_2_3_actual_knob_controller_v2.py \
+            src/data_atp/events.py upstream_atp/metamath.py upstream_atp/setmm_grammar.py \
+            'upstream_atp/predator 8/predator 8.007-R3I4-dvcoherent-imagination.py'
+          {
+            echo "architecture=DATA-MIND 2.5 The Trading Mathematician"
+            echo "architecture_changed=true"
+            echo "inherits=DATA-MIND 2.4"
+            echo "source_ref=$DATA_ATP_REF"
+            echo "target=$TARGET"
+            echo "problem_id=$PROBLEM_ID"
+            echo "scientific_role=2.5 no-regression/search-behavior comparison on same rpnnen Halo prerequisite"
+            echo "budget=$BUDGET"
+            echo "seed=$SEED"
+            echo "wall_seconds=$WALL_SECONDS"
+            echo "atp_commit=$ATP_COMMIT"
+            echo "data_atp_commit=$(git rev-parse HEAD)"
+            echo "setmm_commit=$SETMM_COMMIT"
+            echo "presentation_trading_layer=true"
+            echo "live_metamath_kernel_modified=false"
+            echo "closure_equivalence_required_before_bank_use=true"
+            echo "trading_optimization_registered=true"
+            echo "persistent_append_only_memory=true"
+            echo "p_r_i_c_couple_shortcut_deliberation=true"
+            echo "verifier_sovereign=true"
+            sha256sum "$ADAPTER" src/data_atp/trading.py \
+              experiments/data_mind_2_4_mathematician_shortcuts.py \
+              src/data_atp/mathematician_memory.py \
+              'upstream_atp/predator 8/predator 8.007-R3I4-dvcoherent-imagination.py'
+          } | tee "$OUT/protocol.txt"
+          { uname -a; free -h; python --version; } | tee "$OUT/runner.txt"
+
+      - name: Recover prior DATA-MIND transaction evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set +e
+          OUT="results/data-mind-2.5-rpnnen"
+          COUNT=0
+          gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" \
+            --jq '.artifacts[] | select(.expired == false) | [.id,.name] | @tsv' \
+            > prior_artifacts/index.tsv
+          while IFS=$'\t' read -r ID NAME; do
+            case "$NAME" in
+              data-mind-*|DATA-MIND-*|seven-way-*|ocean-*) ;;
+              *) continue ;;
+            esac
+            ZIP="prior_artifacts/${ID}.zip"
+            DIR="prior_artifacts/${ID}"
+            mkdir -p "$DIR"
+            gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${ID}/zip" > "$ZIP" || continue
+            unzip -q -o "$ZIP" -d "$DIR" || continue
+            while IFS= read -r TX; do
+              [ -s "$TX" ] || continue
+              COUNT=$((COUNT+1))
+              cp "$TX" "seed_logs/$(printf '%04d' "$COUNT")_${ID}_transactions.jsonl"
+              printf '%s\t%s\t%s\n' "$COUNT" "$ID" "$NAME" >> seed_logs/provenance.tsv
+            done < <(find "$DIR" -type f -name 'transactions.jsonl' -print)
+          done < prior_artifacts/index.tsv
+          echo "prior_transaction_logs=$COUNT" | tee "$OUT/prior_memory_status.txt"
+          exit 0
+
+      - name: Run DATA-MIND 2.5 rpnnen search
+        shell: bash
+        run: |
+          set +e
+          set -uo pipefail
+          OUT="results/data-mind-2.5-rpnnen"
+          INGEST=()
+          while IFS= read -r TX; do
+            [ -s "$TX" ] || continue
+            INGEST+=(--ingest-transactions "history::${TX}")
+          done < <(find seed_logs -maxdepth 1 -type f -name '*_transactions.jsonl' | sort)
+
+          /usr/bin/time -f 'process_wall_s=%e\nmax_rss_kb=%M' -o "$OUT/process_time.txt" \
+            timeout "$WALL_SECONDS" env PYTHONPATH="$GITHUB_WORKSPACE/src" \
+              python -u "$ADAPTER" \
+                --version 2.5 \
+                --trade-ledger "$OUT/trading_runtime_ledger.jsonl" \
+                --problem-id "$PROBLEM_ID" \
+                --run-id "dm25-rpnnen-${GITHUB_RUN_ID}" \
+                --memory "$OUT/mathematician_memory.jsonl" \
+                --shortcut-ledger "$OUT/shortcut_runtime_ledger.jsonl" \
+                --exposure-ledger "$OUT/exposure_runtime_ledger.jsonl" \
+                --shortcut-step "$SHORTCUT_STEP" \
+                --shortcut-min-confidence "$SHORTCUT_MIN_CONFIDENCE" \
+                --shortcut-top-k "$SHORTCUT_TOP_K" \
+                --distant-probability "$DISTANT_PROBABILITY" \
+                "${INGEST[@]}" \
+                --atp-root "$GITHUB_WORKSPACE/upstream_atp" \
+                --setmm "$GITHUB_WORKSPACE/upstream_atp/predator 8/set.mm" \
+                --target "$TARGET" --budget "$BUDGET" --max-depth 12 --agents 4 \
+                --creativity 0.55 --seed "$SEED" --opener-cap 48 --max-open 8 \
+                --progress 250 --control-interval "$CONTROL_INTERVAL" \
+                --adult-step "$ADULT_STEP" --adult-failure-stale "$ADULT_FAILURE_STALE" \
+                --child-trial-expansions "$CHILD_TRIAL_EXPANSIONS" \
+                --child-cooldown-expansions "$CHILD_COOLDOWN_EXPANSIONS" \
+                --out "$OUT/candidate.mm" --transactions "$OUT/transactions.jsonl" \
+                --summary "$OUT/pre_external_summary.json" \
+            2>&1 | tee "$OUT/search.log"
+          RC=${PIPESTATUS[0]}
+          echo "returncode=$RC" > "$OUT/run_status.txt"
+          exit 0
+
+      - name: Independent contextual Metamath verification
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          set -o pipefail
+          OUT="results/data-mind-2.5-rpnnen"
+          if [ ! -s "$OUT/candidate.mm" ]; then
+            echo 'No candidate certificate emitted.' | tee "$OUT/external_cv.log"
+            echo 'returncode=2' > "$OUT/external_cv_status.txt"
+            exit 0
+          fi
+          python - "$OUT" "$TARGET" <<'PY' 2>&1 | tee "$OUT/external_cv.log"
+          import re, sys
+          from pathlib import Path
+          out=Path(sys.argv[1]); target=sys.argv[2]
+          env=Path('upstream_atp/predator 8/set.mm').read_text(encoding='utf-8')
+          cand=(out/'candidate.mm').read_text(encoding='utf-8')
+          proofs=list(re.finditer(r'\$=\s*(.*?)\s*\$\.', cand, re.S))
+          if len(proofs)!=1: raise SystemExit(f'expected one candidate proof, found {len(proofs)}')
+          proof=proofs[0].group(1).strip()
+          if not proof: raise SystemExit('empty candidate proof')
+          pat=re.compile(rf'(?ms)(^[ \t]*{re.escape(target)}[ \t]+\$p\b.*?\$=\s*)(.*?)(\s*\$\.)')
+          ms=list(pat.finditer(env))
+          if len(ms)!=1: raise SystemExit(f'expected one target theorem, found {len(ms)}')
+          m=ms[0]
+          patched=env[:m.start(2)] + proof + env[m.end(2):]
+          (out/'candidate_context.mm').write_text(patched, encoding='utf-8')
+          print('contextual verification preparation: OK')
+          print('candidate_proof_tokens=',len(proof.split()))
+          PY
+          PREP=${PIPESTATUS[0]}
+          if [ "$PREP" -ne 0 ]; then echo "returncode=$PREP" > "$OUT/external_cv_status.txt"; exit 0; fi
+          python -u upstream_atp/metamath.py verify "$OUT/candidate_context.mm" 2>&1 | tee -a "$OUT/external_cv.log"
+          RC=${PIPESTATUS[0]}
+          echo "returncode=$RC" > "$OUT/external_cv_status.txt"
+          exit 0
+
+      - name: Finalize verifier-gated result
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="results/data-mind-2.5-rpnnen"
+          PYTHONPATH="$GITHUB_WORKSPACE/src" python - "$OUT" "$PROBLEM_ID" "$TARGET" <<'PY'
+          import json,re,sys
+          from pathlib import Path
+          from data_atp.events import EventType, TransactionLog
+          from data_atp.mathematician_memory import AppendOnlyMemoryStore
+          out=Path(sys.argv[1]); problem_id=sys.argv[2]; target=sys.argv[3]
+          pre=json.loads((out/'pre_external_summary.json').read_text()) if (out/'pre_external_summary.json').exists() else {}
+          run_text=(out/'run_status.txt').read_text() if (out/'run_status.txt').exists() else ''
+          cv_text=(out/'external_cv_status.txt').read_text() if (out/'external_cv_status.txt').exists() else ''
+          run_m=re.search(r'returncode=(\d+)',run_text); cv_m=re.search(r'returncode=(\d+)',cv_text)
+          run_rc=int(run_m.group(1)) if run_m else None; cv_rc=int(cv_m.group(1)) if cv_m else None
+          candidate=(out/'candidate.mm').exists() and (out/'candidate.mm').stat().st_size>0
+          verified=bool(candidate and cv_rc==0)
+          log=TransactionLog(out/'transactions.jsonl')
+          if candidate and verified:
+              log.append(EventType.VERIFIER_ACCEPTED,{'kind':'independent_verifier_result','target':target,'accepted':True,'authority':'external_sovereign_verifier'})
+              log.append(EventType.ACTION_EXECUTED,{'kind':'bank_commit','target':target,'gate':'independent_verifier_accepted'})
+          elif candidate:
+              log.append(EventType.VERIFIER_REJECTED,{'kind':'independent_verifier_result','target':target,'accepted':False,'external_returncode':cv_rc,'authority':'external_sovereign_verifier'})
+              log.append(EventType.ACTION_REJECTED,{'kind':'bank_reject','target':target,'gate':'independent_verifier_rejected'})
+          else:
+              log.append(EventType.SELF_REPORT_FILED,{'kind':'no_candidate','target':target,'run_returncode':run_rc})
+          if verified: status='PROVED'
+          elif candidate: status='VERIFIER_REJECTED'
+          elif run_rc==124: status='TIMEOUT'
+          elif run_rc==1: status='BOUNDED_UNKNOWN'
+          else: status='NO_VERIFIED_CERTIFICATE'
+          memory=AppendOnlyMemoryStore(out/'mathematician_memory.jsonl')
+          imported=memory.ingest_transaction_log(out/'transactions.jsonl', problem_id=problem_id,
+              run_id='dm25-rpnnen-finalized', source_label='finalized-current-run-transactions')
+          memory.append(problem_id=problem_id, run_id='dm25-rpnnen-finalized', kind='independent_verifier_result',
+              outcome='success' if verified else 'failure', verified=verified,
+              action={'status':status,'candidate_emitted':candidate,'run_returncode':run_rc,'verifier_returncode':cv_rc},
+              tags=('data-mind-2.5','trading','rpnnen','final','verifier-gated'), source='DATA-MIND 2.5 rpnnen experiment')
+          result=dict(pre)
+          result.update({'solver':'DATA-MIND 2.5 The Trading Mathematician','architecture_version':'2.5',
+              'architecture_changed':True,'inherits_data_mind_2_4':True,'target':target,'problem_id':problem_id,
+              'status':status,'certificate_verified':verified,'candidate_emitted':candidate,'run_returncode':run_rc,
+              'independent_context_verifier_returncode':cv_rc,'transaction_log_verified':log.verify(),
+              'bank_commit_written':verified,'bank_commit_verifier_gated':True,'budget':300000,'seed':2301,
+              'wall_seconds':21400,'presentation_trading_layer':True,'live_metamath_kernel_modified':False,
+              'closure_equivalence_required_before_trade_activation':True,'trading_optimization_registered':True,
+              'persistent_append_only_memory':True,'finalized_transactions_imported_into_memory':imported,
+              'memory_records':len(memory.records()),'memory_hash_chain_valid':memory.verify()})
+          if (out/'process_time.txt').exists():
+              for line in (out/'process_time.txt').read_text(errors='replace').splitlines():
+                  if line.startswith('process_wall_s='):
+                      try: result['process_wall_s']=float(line.split('=',1)[1])
+                      except: pass
+                  if line.startswith('max_rss_kb='):
+                      try: result['max_rss_kb']=int(line.split('=',1)[1])
+                      except: pass
+          (out/'result.json').write_text(json.dumps(result,indent=2)+'\n')
+          print(json.dumps(result,indent=2))
+          if not log.verify(): raise SystemExit('transaction log failed')
+          if not memory.verify(): raise SystemExit('memory hash chain failed')
+          PY
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: data-mind-2.5-rpnnen-${{ github.run_id }}
+          path: |
+            results/data-mind-2.5-rpnnen/
+            seed_logs/provenance.tsv
+          if-no-files-found: error
+          retention-days: 90
