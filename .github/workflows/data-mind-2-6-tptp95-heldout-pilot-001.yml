@@ -109,7 +109,9 @@ jobs:
               if not source.is_file():
                   raise RuntimeError(f'missing included axiom in frozen archive: {ax}')
               text = source.read_text(encoding='utf-8', errors='replace')
-              shutil.copy2(source, adir / ax)
+              dest = adir / ax
+              dest.parent.mkdir(parents=True, exist_ok=True)
+              shutil.copy2(source, dest)
               queue.extend(include_re.findall(text))
 
           (root/'SOURCE.txt').write_text(
