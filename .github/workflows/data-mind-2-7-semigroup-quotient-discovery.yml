@@ -1,0 +1,266 @@
+name: DATA-MIND 2.7 — Quotient Discovery — sgrpcl
+
+on:
+  push:
+    branches: [data-mind-2.7-quotient-discovery]
+    paths:
+      - '.github/workflows/data-mind-2-7-semigroup-quotient-discovery.yml'
+      - 'experiments/data_mind_2_7_semigroup_quotient_discovery.py'
+      - 'experiments/data_mind_2_4_mathematician_shortcuts.py'
+      - 'src/data_atp/events.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ATP_COMMIT: ad2300ab1a47119f93f3417bc52c348f87e57c62
+  SETMM_COMMIT: cd577894d8e6bf8b4fe8014c0d525d531507e4b7
+  SETMM_SHA256: 1016d7edb0508abde0fe240bb5243e588c5067f8cb10ee6e1cc5733fc05acdb5
+  TARGET: sgrpcl
+  PROBLEM_ID: DM-PB-0001
+  BUDGET: '60000'
+  WALL_SECONDS: '600'
+  SEED: '2301'
+  CONTROL_INTERVAL: '100'
+  ADULT_FAILURE_STALE: '2000'
+  CHILD_TRIAL_EXPANSIONS: '4000'
+  CHILD_COOLDOWN_EXPANSIONS: '4000'
+
+jobs:
+  compare:
+    name: ${{ matrix.id }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include:
+          - id: dm27-qh
+            adapter: experiments/data_mind_2_7_semigroup_quotient_discovery.py
+            label: DATA-MIND 2.7 Quotient Discovery
+          - id: dm24-control
+            adapter: experiments/data_mind_2_4_mathematician_shortcuts.py
+            label: DATA-MIND 2.4 control
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/checkout@v4
+        with:
+          repository: btenneson/ATP
+          ref: ${{ env.ATP_COMMIT }}
+          path: upstream_atp
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Freeze theorem environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="results/${{ matrix.id }}"
+          mkdir -p "$OUT"
+          curl -L --retry 3 --fail -o 'upstream_atp/predator 8/set.mm' \
+            "https://raw.githubusercontent.com/metamath/set.mm/$SETMM_COMMIT/set.mm"
+          test "$(sha256sum 'upstream_atp/predator 8/set.mm' | awk '{print $1}')" = "$SETMM_SHA256"
+          PYTHONPATH="$GITHUB_WORKSPACE/src" python -m py_compile \
+            '${{ matrix.adapter }}' \
+            experiments/data_mind_2_4_mathematician_shortcuts.py \
+            experiments/data_mind_2_2_2_3_actual_knob_controller_v2.py \
+            experiments/data_mind_2_2_2_3_actual_knob_controller.py \
+            src/data_atp/mathematician_memory.py src/data_atp/events.py \
+            upstream_atp/metamath.py upstream_atp/setmm_grammar.py \
+            'upstream_atp/predator 8/predator 8.007-R3I4-dvcoherent-imagination.py'
+          {
+            echo "solver=${{ matrix.label }}"
+            echo "target=$TARGET"
+            echo "budget=$BUDGET"
+            echo "wall_seconds=$WALL_SECONDS"
+            echo "seed=$SEED"
+            echo "control_interval=$CONTROL_INTERVAL"
+            echo "atp_commit=$ATP_COMMIT"
+            echo "data_atp_commit=$(git rev-parse HEAD)"
+            echo "setmm_commit=$SETMM_COMMIT"
+            echo "fresh_memory=true"
+            echo "independent_verifier_sovereign=true"
+            sha256sum '${{ matrix.adapter }}' src/data_atp/events.py \
+              'upstream_atp/predator 8/predator 8.007-R3I4-dvcoherent-imagination.py'
+          } | tee "$OUT/protocol.txt"
+
+      - name: Run frozen semigroup search
+        shell: bash
+        run: |
+          set +e
+          set -uo pipefail
+          OUT="results/${{ matrix.id }}"
+          /usr/bin/time -f 'process_wall_s=%e\nmax_rss_kb=%M' -o "$OUT/process_time.txt" \
+            timeout "$WALL_SECONDS" env PYTHONPATH="$GITHUB_WORKSPACE/src" \
+              python -u '${{ matrix.adapter }}' \
+                --version 2.4 \
+                --problem-id "$PROBLEM_ID" \
+                --run-id "${{ matrix.id }}-${GITHUB_RUN_ID}" \
+                --memory "$OUT/memory.jsonl" \
+                --shortcut-ledger "$OUT/shortcut_ledger.jsonl" \
+                --exposure-ledger "$OUT/exposure_ledger.jsonl" \
+                --shortcut-step 0.0125 \
+                --shortcut-min-confidence 0.08 \
+                --shortcut-top-k 8 \
+                --distant-probability 0.05 \
+                --atp-root "$GITHUB_WORKSPACE/upstream_atp" \
+                --setmm "$GITHUB_WORKSPACE/upstream_atp/predator 8/set.mm" \
+                --target "$TARGET" \
+                --budget "$BUDGET" \
+                --max-depth 12 \
+                --agents 4 \
+                --creativity 0.55 \
+                --seed "$SEED" \
+                --opener-cap 48 \
+                --max-open 8 \
+                --progress 100 \
+                --control-interval "$CONTROL_INTERVAL" \
+                --adult-step 0.025 \
+                --adult-failure-stale "$ADULT_FAILURE_STALE" \
+                --child-trial-expansions "$CHILD_TRIAL_EXPANSIONS" \
+                --child-cooldown-expansions "$CHILD_COOLDOWN_EXPANSIONS" \
+                --out "$OUT/candidate.mm" \
+                --transactions "$OUT/transactions.jsonl" \
+                --summary "$OUT/pre_external_summary.json" \
+            2>&1 | tee "$OUT/search.log"
+          RC=${PIPESTATUS[0]}
+          echo "returncode=$RC" | tee "$OUT/run_status.txt"
+          exit 0
+
+      - name: Independent contextual Metamath verification
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          set -o pipefail
+          OUT="results/${{ matrix.id }}"
+          if [ ! -s "$OUT/candidate.mm" ]; then
+            echo 'No candidate certificate emitted.' | tee "$OUT/external_cv.log"
+            echo 'returncode=2' > "$OUT/external_cv_status.txt"
+            exit 0
+          fi
+          python - "$OUT" "$TARGET" <<'PY' 2>&1 | tee "$OUT/external_cv.log"
+          import re,sys
+          from pathlib import Path
+          out=Path(sys.argv[1]); target=sys.argv[2]
+          env=Path('upstream_atp/predator 8/set.mm').read_text(encoding='utf-8')
+          cand=(out/'candidate.mm').read_text(encoding='utf-8')
+          proofs=list(re.finditer(r'\$=\s*(.*?)\s*\$\.',cand,re.S))
+          if len(proofs)!=1: raise SystemExit(f'expected one candidate proof, found {len(proofs)}')
+          proof=proofs[0].group(1).strip()
+          pat=re.compile(rf'(?ms)(^[ \t]*{re.escape(target)}[ \t]+\$p\b.*?\$=\s*)(.*?)(\s*\$\.)')
+          hits=list(pat.finditer(env))
+          if len(hits)!=1: raise SystemExit(f'expected one target theorem, found {len(hits)}')
+          m=hits[0]
+          (out/'candidate_context.mm').write_text(env[:m.start(2)] + proof + env[m.end(2):],encoding='utf-8')
+          print('candidate_proof_tokens=',len(proof.split()))
+          PY
+          PREP=${PIPESTATUS[0]}
+          if [ "$PREP" -ne 0 ]; then echo "returncode=$PREP" > "$OUT/external_cv_status.txt"; exit 0; fi
+          python -u upstream_atp/metamath.py verify "$OUT/candidate_context.mm" 2>&1 | tee -a "$OUT/external_cv.log"
+          RC=${PIPESTATUS[0]}
+          echo "returncode=$RC" > "$OUT/external_cv_status.txt"
+          exit 0
+
+      - name: Finalize scientific result
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="results/${{ matrix.id }}"
+          PYTHONPATH="$GITHUB_WORKSPACE/src" python - "$OUT" '${{ matrix.id }}' '${{ matrix.label }}' "$BUDGET" "$SEED" "$WALL_SECONDS" <<'PY'
+          import json,re,sys
+          from pathlib import Path
+          from data_atp.events import EventType,TransactionLog
+          from data_atp.mathematician_memory import AppendOnlyMemoryStore
+          out=Path(sys.argv[1]); ident=sys.argv[2]; label=sys.argv[3]
+          budget=int(sys.argv[4]); seed=int(sys.argv[5]); wall=int(sys.argv[6])
+          pre=json.loads((out/'pre_external_summary.json').read_text()) if (out/'pre_external_summary.json').exists() else {}
+          def rc(path):
+              if not path.exists(): return None
+              m=re.search(r'returncode=(\d+)',path.read_text())
+              return int(m.group(1)) if m else None
+          run_rc=rc(out/'run_status.txt'); cv_rc=rc(out/'external_cv_status.txt')
+          candidate=(out/'candidate.mm').exists() and (out/'candidate.mm').stat().st_size>0
+          verified=bool(candidate and cv_rc==0)
+          log=TransactionLog(out/'transactions.jsonl')
+          if verified:
+              log.append(EventType.VERIFIER_ACCEPTED,{'target':'sgrpcl','authority':'external_sovereign_verifier'})
+              log.append(EventType.ACTION_EXECUTED,{'kind':'bank_commit','target':'sgrpcl','gate':'independent_verifier_accepted'})
+          elif candidate:
+              log.append(EventType.VERIFIER_REJECTED,{'target':'sgrpcl','external_returncode':cv_rc})
+          else:
+              log.append(EventType.SELF_REPORT_FILED,{'kind':'no_candidate','target':'sgrpcl','run_returncode':run_rc})
+          if verified: status='PROVED'
+          elif candidate: status='VERIFIER_REJECTED'
+          elif run_rc==124: status='TIMEOUT'
+          elif run_rc==1: status='BOUNDED_UNKNOWN'
+          else: status='NO_VERIFIED_CERTIFICATE'
+          mem=AppendOnlyMemoryStore(out/'memory.jsonl')
+          result=dict(pre)
+          result.update({
+              'solver':label,'id':ident,'target':'sgrpcl','status':status,
+              'certificate_verified':verified,'candidate_emitted':candidate,
+              'run_returncode':run_rc,'independent_context_verifier_returncode':cv_rc,
+              'transaction_log_verified':log.verify(),'memory_hash_chain_valid':mem.verify(),
+              'bank_commit_written':verified,'bank_commit_verifier_gated':True,
+              'budget':budget,'seed':seed,'wall_seconds':wall,
+              'fresh_memory':True,'scientific_endpoint_met':verified,
+              'shared_kernel':'pinned Predator 8.007 R3/I4 DV-coherent kernel',
+          })
+          (out/'result.json').write_text(json.dumps(result,indent=2)+'\n')
+          print(json.dumps(result,indent=2))
+          if not result['transaction_log_verified'] or not result['memory_hash_chain_valid']:
+              raise SystemExit(3)
+          if ident=='dm27-qh':
+              assert result.get('architecture_version')=='2.7'
+              assert result.get('quotient_hunter_enabled') is True
+              assert result.get('exact_reverse_distance_handed_to_qh') is False
+              assert result.get('target_proof_read_by_qh') is False
+              assert int(result.get('qh_candidate_language_size') or 0) >= 50
+          PY
+
+      - name: Upload solver evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: data-mind-2.7-sgrpcl-${{ matrix.id }}-${{ github.run_id }}
+          path: results/${{ matrix.id }}/
+          if-no-files-found: error
+          retention-days: 90
+
+  summarize:
+    name: Semigroup comparison summary
+    needs: compare
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: data-mind-2.7-sgrpcl-*
+          path: all_results
+      - name: Compare scientific endpoints
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          rows=[]
+          for p in Path('all_results').rglob('result.json'):
+              r=json.loads(p.read_text()); rows.append(r)
+          rows.sort(key=lambda r:r.get('id',''))
+          print(json.dumps(rows,indent=2))
+          q=next((r for r in rows if r.get('id')=='dm27-qh'),None)
+          c=next((r for r in rows if r.get('id')=='dm24-control'),None)
+          if q:
+              print('QH selected geometry:',q.get('qh_selected_geometry'))
+              print('QH observations:',q.get('qh_observations'))
+              print('QH activations:',q.get('qh_search_control_activations'))
+          if q and c:
+              print('scientific outcomes:',q.get('status'),'vs',c.get('status'))
+          PY
