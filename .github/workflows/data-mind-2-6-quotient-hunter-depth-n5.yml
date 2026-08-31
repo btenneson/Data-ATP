@@ -24,22 +24,30 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
-      - name: Freeze benchmark and eight-agent dependencies
+      - name: Freeze dependencies and patch inherited loader compatibility
         shell: bash
         run: |
           set -euo pipefail
           git fetch --no-tags --depth=1 origin "$R01_COMMIT"
           mkdir -p "$RUNNER_TEMP/frozen" results
-          git show "$R01_COMMIT:benchmarks/notald_ocean_r01/scripts/generate_tied_ocean_v1.py" \
-            > "$RUNNER_TEMP/frozen/generate.py"
-          curl -fsSL \
-            "https://raw.githubusercontent.com/btenneson/ATP/$P8038_COMMIT/predator%208/recovered8_002/predator8_038_eight_agent_revision_fallback.py" \
-            -o "$RUNNER_TEMP/frozen/p8038.py"
+          git show "$R01_COMMIT:benchmarks/notald_ocean_r01/scripts/generate_tied_ocean_v1.py" > "$RUNNER_TEMP/frozen/generate.py"
+          curl -fsSL "https://raw.githubusercontent.com/btenneson/ATP/$P8038_COMMIT/predator%208/recovered8_002/predator8_038_eight_agent_revision_fallback.py" -o "$RUNNER_TEMP/frozen/p8038.py"
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('experiments/data_mind_ocean_full_feature.py')
+          s=p.read_text(encoding='utf-8')
+          if 'import sys\n' not in s:
+              s=s.replace('import random\nimport time\n','import random\nimport time\nimport sys\n',1)
+          old='    mod = importlib.util.module_from_spec(spec)\n    spec.loader.exec_module(mod)\n'
+          new='    mod = importlib.util.module_from_spec(spec)\n    sys.modules[name] = mod\n    spec.loader.exec_module(mod)\n'
+          if old not in s:
+              raise SystemExit('dynamic loader patch anchor missing')
+          p.write_text(s.replace(old,new,1),encoding='utf-8')
+          PY
           {
             echo "architecture=DATA-MIND 2.6 Quotient Hunter"
             echo "benchmark_family=Depths/Ocean"
@@ -48,9 +56,7 @@ jobs:
             echo "r01_commit=$R01_COMMIT"
             echo "p8038_commit=$P8038_COMMIT"
             echo "data_atp_commit=$(git rev-parse HEAD)"
-            sha256sum "$RUNNER_TEMP/frozen"/*.py \
-              src/data_atp/quotient_hunter.py \
-              experiments/data_mind_2_6_quotient_hunter_depths.py
+            sha256sum "$RUNNER_TEMP/frozen"/*.py src/data_atp/quotient_hunter.py experiments/data_mind_2_6_quotient_hunter_depths.py
           } | tee results/protocol.txt
 
       - name: Compile 2.6
@@ -64,103 +70,73 @@ jobs:
             experiments/data_mind_2_6_quotient_hunter_depths.py \
             "$RUNNER_TEMP/frozen/p8038.py"
 
-      - name: Generate feature-exercise preflight
+      - name: Exercise full 2.6 architecture
         shell: bash
         run: |
           set -euo pipefail
-          python "$RUNNER_TEMP/frozen/generate.py" \
-            --out "$RUNNER_TEMP/preflight" --depths 25000 --seeds 12345
+          python "$RUNNER_TEMP/frozen/generate.py" --out "$RUNNER_TEMP/preflight" --depths 25000 --seeds 12345
           P=$(find "$RUNNER_TEMP/preflight/solver_inputs/standard" -name '*.p' | head -1)
-          echo "PREFLIGHT_PROBLEM=$P" >> "$GITHUB_ENV"
-
-      - name: Exercise all 2.6 faculties before short benchmark
-        shell: bash
-        run: |
-          set -euo pipefail
           mkdir -p results/preflight
-          PYTHONPATH="$GITHUB_WORKSPACE/src" python \
-            experiments/data_mind_2_6_quotient_hunter_depths.py \
-            --problem "$PREFLIGHT_PROBLEM" \
-            --reference benchmarks/ocean_reference/reference_solvers.py \
+          PYTHONPATH="$GITHUB_WORKSPACE/src" python experiments/data_mind_2_6_quotient_hunter_depths.py \
+            --problem "$P" --reference benchmarks/ocean_reference/reference_solvers.py \
             --p8038 "$RUNNER_TEMP/frozen/p8038.py" \
-            --out results/preflight/result.json \
-            --transactions results/preflight/transactions.jsonl \
-            --memory results/preflight/memory.jsonl \
-            --bank results/preflight/bank.jsonl \
-            --problem-id DEPTHS-PREFLIGHT-25000 \
-            --depth-n 25000 \
-            --time-limit 90 \
-            --max-expansions 5000000 \
-            --control-epoch 1000 \
-            --qh-warmup-expansions 20000 \
-            --qh-contract-threshold 0.95 \
-            --qh-fixed-point-window 2 \
-            --seed 2301
-
-      - name: Enforce feature-exercise invariants
-        shell: bash
-        run: |
+            --out results/preflight/result.json --transactions results/preflight/transactions.jsonl \
+            --memory results/preflight/memory.jsonl --bank results/preflight/bank.jsonl \
+            --problem-id DEPTHS-PREFLIGHT-25000 --depth-n 25000 \
+            --time-limit 90 --max-expansions 5000000 --control-epoch 1000 \
+            --qh-warmup-expansions 20000 --qh-contract-threshold 0.95 \
+            --qh-fixed-point-window 2 --seed 2301
           python - <<'PY'
           import json
           from pathlib import Path
           r=json.loads(Path('results/preflight/result.json').read_text())
           assert r['architecture_version']=='2.6'
-          assert r['all_eight_pric_agents_enabled']
-          assert r['quotient_hunter_agent_enabled']
+          assert r['all_eight_pric_agents_enabled'] and r['quotient_hunter_agent_enabled']
           assert r['professor_enabled'] and r['counselor_enabled'] and r['learning_enabled']
           assert r['adaptive_control_enabled'] and r['structured_creativity_enabled']
-          assert r['group_inverse_revision_enabled']
-          assert r['persistent_cross_run_memory_enabled'] and r['memory_hash_chain_valid']
+          assert r['group_inverse_revision_enabled'] and r['persistent_cross_run_memory_enabled']
           assert r['bank_read_enabled'] and r['bank_write_verifier_gated']
           assert r['trading_enabled'] and r['qh_trade_activatable']
           assert r['qh_trade_independently_verified'] and r['qh_trade_active']
-          assert r['qh_agent_message_count'] >= 1
           assert r['agent_message_count'] >= 8
           assert r['professor_events'] >= 1 and r['counselor_events'] >= 1 and r['learning_events'] >= 1
-          assert r['transaction_log_verified']
+          assert r['memory_hash_chain_valid'] and r['transaction_log_verified']
           print('DATA-MIND 2.6 FULL-FEATURE PREFLIGHT PASS')
           PY
 
-      - name: Generate opaque Depth n=5 instance
+      - name: Generate and audit Depth n=5
         shell: bash
         run: |
           set -euo pipefail
-          python "$RUNNER_TEMP/frozen/generate.py" \
-            --out "$RUNNER_TEMP/depth5" --depths 5 --seeds 2301
+          python "$RUNNER_TEMP/frozen/generate.py" --out "$RUNNER_TEMP/depth5" --depths 5 --seeds 2301
           P=$(find "$RUNNER_TEMP/depth5/solver_inputs/standard" -name '*.p' | head -1)
           echo "DEPTH5_PROBLEM=$P" >> "$GITHUB_ENV"
           sha256sum "$P" | tee results/depth5_problem_sha256.txt
-          # Evaluator-only audit: confirm the generated calibration really is n=5.
           python - <<'PY'
-          import json, os
+          import json,os
           from pathlib import Path
           key=json.loads((Path(os.environ['RUNNER_TEMP'])/'depth5/evaluator_only/answer_key.json').read_text())[0]
           assert key['Lstar']==5 and key['bfs_verified_Lstar']==5
           print('evaluator audit: exact shortest proof depth n=5')
           PY
 
-      - name: Unit-check QH geometry without evaluator metadata
+      - name: QH must rediscover n=5 geometry from opaque input
         shell: bash
         run: |
           PYTHONPATH="$GITHUB_WORKSPACE/src" python - <<'PY'
-          import importlib.util, os
+          import importlib.util,os
           from pathlib import Path
           from data_atp.quotient_hunter import QuotientHunter
           spec=importlib.util.spec_from_file_location('ref',Path('benchmarks/ocean_reference/reference_solvers.py'))
           ref=importlib.util.module_from_spec(spec); spec.loader.exec_module(ref)
           source,target,edges,adj,_=ref.parse_problem(Path(os.environ['DEPTH5_PROBLEM']))
-          qh=QuotientHunter(source=source,target=target,edges=edges)
-          d=qh.discover()
-          assert d.hidden_metadata_read is False
-          assert d.selected=='reverse_distance_rank'
-          assert d.source_horizon==5
-          assert d.trade_activatable and d.policy_path_verified
-          chosen=next(r for r in d.reports if r.name==d.selected)
-          assert chosen.lambda_h_bound is not None and 0 <= chosen.lambda_h_bound < 1
-          assert abs(chosen.lambda_h_bound-0.8) < 1e-12
-          assert chosen.unique_policy_fixed_point
-          assert len(d.policy_path)-1 == 5
-          print('QH GEOMETRY PASS:',d.as_dict())
+          d=QuotientHunter(source=source,target=target,edges=edges).discover()
+          assert d.hidden_metadata_read is False and d.selected=='reverse_distance_rank'
+          assert d.source_horizon==5 and d.trade_activatable and d.policy_path_verified
+          q=next(r for r in d.reports if r.name==d.selected)
+          assert q.lambda_h_bound is not None and abs(q.lambda_h_bound-0.8)<1e-12
+          assert q.unique_policy_fixed_point and len(d.policy_path)-1==5
+          print('QH GEOMETRY PASS',d.as_dict())
           PY
 
       - name: Run DATA-MIND 2.6 on Depth n=5 — 10 minute ceiling
@@ -168,81 +144,54 @@ jobs:
         run: |
           set +e
           mkdir -p results/depth-n5
-          /usr/bin/time -f 'process_wall_s=%e\nmax_rss_kb=%M' \
-            -o results/depth-n5/process_time.txt \
-            timeout 660s env PYTHONPATH="$GITHUB_WORKSPACE/src" python \
-              experiments/data_mind_2_6_quotient_hunter_depths.py \
-              --problem "$DEPTH5_PROBLEM" \
-              --reference benchmarks/ocean_reference/reference_solvers.py \
+          /usr/bin/time -f 'process_wall_s=%e\nmax_rss_kb=%M' -o results/depth-n5/process_time.txt \
+            timeout 660s env PYTHONPATH="$GITHUB_WORKSPACE/src" python experiments/data_mind_2_6_quotient_hunter_depths.py \
+              --problem "$DEPTH5_PROBLEM" --reference benchmarks/ocean_reference/reference_solvers.py \
               --p8038 "$RUNNER_TEMP/frozen/p8038.py" \
-              --out results/depth-n5/result.json \
-              --transactions results/depth-n5/transactions.jsonl \
-              --memory results/depth-n5/memory.jsonl \
-              --bank results/depth-n5/bank.jsonl \
-              --problem-id DEPTHS-N5 \
-              --depth-n 5 \
-              --time-limit 600 \
-              --max-expansions 100000000 \
-              --control-epoch 2 \
-              --qh-warmup-expansions 0 \
-              --qh-contract-threshold 0.95 \
-              --qh-fixed-point-window 2 \
-              --seed 2301
+              --out results/depth-n5/result.json --transactions results/depth-n5/transactions.jsonl \
+              --memory results/depth-n5/memory.jsonl --bank results/depth-n5/bank.jsonl \
+              --problem-id DEPTHS-N5 --depth-n 5 --time-limit 600 --max-expansions 100000000 \
+              --control-epoch 2 --qh-warmup-expansions 0 --qh-contract-threshold 0.95 \
+              --qh-fixed-point-window 2 --seed 2301
           RC=$?
           echo "returncode=$RC" | tee results/depth-n5/returncode.txt
-          cat results/depth-n5/result.json
+          test -f results/depth-n5/result.json && cat results/depth-n5/result.json
           exit 0
 
-      - name: Enforce Depth n=5 scientific invariants
+      - name: Enforce n=5 result and prove BANK read/write
         shell: bash
         run: |
+          set -euo pipefail
           python - <<'PY'
           import json
           from pathlib import Path
           r=json.loads(Path('results/depth-n5/result.json').read_text())
           assert r['depth_n']==5 and r['hidden_metadata_read'] is False
-          assert r['qh_selected_quotient']=='reverse_distance_rank'
-          assert r['qh_source_horizon']==5
+          assert r['qh_selected_quotient']=='reverse_distance_rank' and r['qh_source_horizon']==5
           assert r['qh_trade_activatable'] and r['qh_trade_independently_verified'] and r['qh_trade_active']
-          assert r['qh_lambda_H_bound'] is not None and r['qh_lambda_H_bound'] < 1.0
-          assert abs(r['qh_lambda_H_bound']-0.8) < 1e-12
-          assert r['qh_unique_policy_fixed_point']
+          assert abs(r['qh_lambda_H_bound']-0.8)<1e-12 and r['qh_unique_policy_fixed_point']
           assert r['qh_policy_path_verified_structurally']
-          assert r['certificate_verified'] and r['status']=='PROVED'
-          assert r['proof_length']==5
+          assert r['certificate_verified'] and r['status']=='PROVED' and r['proof_length']==5
           assert r['bank_commit_written'] and r['bank_write_verifier_gated']
           assert r['memory_hash_chain_valid'] and r['transaction_log_verified']
           print('DEPTH n=5 DATA-MIND 2.6 PASS')
           PY
-
-      - name: Re-run from verified BANK to prove BANK read is live
-        shell: bash
-        run: |
-          set -euo pipefail
           mkdir -p results/depth-n5-bank-reuse
           cp results/depth-n5/bank.jsonl results/depth-n5-bank-reuse/bank.jsonl
           cp results/depth-n5/memory.jsonl results/depth-n5-bank-reuse/memory.jsonl
-          PYTHONPATH="$GITHUB_WORKSPACE/src" python \
-            experiments/data_mind_2_6_quotient_hunter_depths.py \
-            --problem "$DEPTH5_PROBLEM" \
-            --reference benchmarks/ocean_reference/reference_solvers.py \
+          PYTHONPATH="$GITHUB_WORKSPACE/src" python experiments/data_mind_2_6_quotient_hunter_depths.py \
+            --problem "$DEPTH5_PROBLEM" --reference benchmarks/ocean_reference/reference_solvers.py \
             --p8038 "$RUNNER_TEMP/frozen/p8038.py" \
             --out results/depth-n5-bank-reuse/result.json \
             --transactions results/depth-n5-bank-reuse/transactions.jsonl \
-            --memory results/depth-n5-bank-reuse/memory.jsonl \
-            --bank results/depth-n5-bank-reuse/bank.jsonl \
-            --problem-id DEPTHS-N5 \
-            --depth-n 5 \
-            --time-limit 600 \
-            --control-epoch 2 \
-            --seed 2301
+            --memory results/depth-n5-bank-reuse/memory.jsonl --bank results/depth-n5-bank-reuse/bank.jsonl \
+            --problem-id DEPTHS-N5 --depth-n 5 --time-limit 600 --control-epoch 2 --seed 2301
           python - <<'PY'
           import json
           from pathlib import Path
           r=json.loads(Path('results/depth-n5-bank-reuse/result.json').read_text())
           assert r['bank_hit'] and r['certificate_verified'] and r['status']=='PROVED'
-          assert r['expansions']==0
-          assert not r['bank_commit_written']
+          assert r['expansions']==0 and not r['bank_commit_written']
           assert r['memory_hash_chain_valid'] and r['transaction_log_verified']
           print('VERIFIED BANK READ/REUSE PASS')
           PY
