@@ -48,62 +48,82 @@ jobs:
           python -m pip install --disable-pip-version-check -q numpy
           eprover --version | head -20
 
-      - name: Acquire frozen TPTP GRP FOF corpus
+      - name: Download frozen TPTP release first
         shell: bash
         run: |
           set -euo pipefail
+          ARCHIVE="TPTP-v${TPTP_VERSION}.tgz"
+          URL="https://tptp.org/TPTP/${ARCHIVE}"
+          echo "Downloading official frozen release: $URL"
+          curl -fL --retry 5 --retry-delay 5 --connect-timeout 30 \
+            --output "$ARCHIVE" "$URL"
+          test -s "$ARCHIVE"
+          echo "archive_bytes=$(stat -c%s "$ARCHIVE")"
+          tar -tzf "$ARCHIVE" | grep -q "TPTP-v${TPTP_VERSION}/Problems/${DOMAIN}/"
+
+      - name: Acquire frozen TPTP GRP FOF corpus from archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          ARCHIVE="TPTP-v${TPTP_VERSION}.tgz"
+          SRC="TPTP-v${TPTP_VERSION}"
+          mkdir -p extracted tptp/Problems/$DOMAIN tptp/Axioms
+          tar -xzf "$ARCHIVE" -C extracted \
+            "$SRC/Problems/$DOMAIN" \
+            "$SRC/Axioms"
           python - <<'PY'
-          import html, re, time, urllib.parse, urllib.request
+          import re, shutil
           from pathlib import Path
+
+          version = '9.3.1'
           domain = 'GRP'
+          target = 'GRP012+5.p'
+          src = Path('extracted') / f'TPTP-v{version}'
+          src_probs = src / 'Problems' / domain
+          src_axioms = src / 'Axioms'
           root = Path('tptp')
-          pdir = root/'Problems'/domain
-          adir = root/'Axioms'
-          pdir.mkdir(parents=True, exist_ok=True)
-          adir.mkdir(parents=True, exist_ok=True)
-          headers={'User-Agent':'DATA-MIND-TPTP-pilot/001'}
-          def get(url, tries=5):
-              last=None
-              for i in range(tries):
-                  try:
-                      req=urllib.request.Request(url,headers=headers)
-                      with urllib.request.urlopen(req,timeout=60) as r:
-                          return r.read()
-                  except Exception as e:
-                      last=e; time.sleep(2**i)
-              raise RuntimeError(f'download failed: {url}: {last}')
-          listing=get(f'https://tptp.org/cgi-bin/SeeTPTP?Category=Problems&Domain={domain}').decode('utf-8','replace')
-          listing=html.unescape(listing)
-          names=sorted(set(re.findall(rf'{domain}\d{{3}}\+\d+(?:\.\d+)?\.p',listing)))
-          if 'GRP012+5.p' not in names:
-              raise SystemExit(f'target absent from listing; FOF-looking files={len(names)}')
+          pdir = root / 'Problems' / domain
+          adir = root / 'Axioms'
+
+          pat = re.compile(rf'^{domain}\d{{3}}\+\d+(?:\.\d+)?\.p$')
+          names = sorted(p.name for p in src_probs.iterdir() if p.is_file() and pat.match(p.name))
+          if target not in names:
+              raise SystemExit(f'target absent from frozen archive; FOF-looking files={len(names)}')
+
           queue=[]
-          for i,name in enumerate(names,1):
-              url=f'https://tptp.org/TPTP/Problems/{domain}/'+urllib.parse.quote(name,safe='')
-              data=get(url); text=data.decode('utf-8','replace')
-              if not text.lstrip().startswith('%'):
-                  raise RuntimeError(f'unexpected content for {name}')
-              (pdir/name).write_bytes(data)
-              queue.extend(re.findall(r"include\(\s*['\"]Axioms/([^'\"]+)",text))
-              if i%50==0 or i==len(names): print(f'downloaded problems {i}/{len(names)}',flush=True)
+          include_re = re.compile(r"include\(\s*['\"]Axioms/([^'\"]+)")
+          for name in names:
+              source = src_probs / name
+              text = source.read_text(encoding='utf-8', errors='replace')
+              shutil.copy2(source, pdir / name)
+              queue.extend(include_re.findall(text))
+
           seen=set()
           while queue:
               ax=queue.pop()
-              if ax in seen: continue
+              if ax in seen:
+                  continue
               seen.add(ax)
-              data=get('https://tptp.org/TPTP/Axioms/'+urllib.parse.quote(ax,safe=''))
-              text=data.decode('utf-8','replace')
-              (adir/ax).write_bytes(data)
-              queue.extend(re.findall(r"include\(\s*['\"]Axioms/([^'\"]+)",text))
+              source = src_axioms / ax
+              if not source.is_file():
+                  raise RuntimeError(f'missing included axiom in frozen archive: {ax}')
+              text = source.read_text(encoding='utf-8', errors='replace')
+              shutil.copy2(source, adir / ax)
+              queue.extend(include_re.findall(text))
+
           (root/'SOURCE.txt').write_text(
-              'TPTP declared release: 9.3.1\n'+f'domain={domain}\n'+
-              f'downloaded_FOF_named_files={len(names)}\n'+
-              f'downloaded_recursive_axiom_files={len(seen)}\n',encoding='utf-8')
+              f'TPTP frozen release: {version}\n'
+              f'domain={domain}\n'
+              f'downloaded_archive_first=true\n'
+              f'copied_FOF_named_files={len(names)}\n'
+              f'copied_recursive_axiom_files={len(seen)}\n',
+              encoding='utf-8')
           print((root/'SOURCE.txt').read_text())
           PY
           test -s "tptp/Problems/$DOMAIN/$TARGET"
           grep -q 'TPTP v9.3.1' "tptp/Problems/$DOMAIN/$TARGET"
           find tptp -type f -print0 | sort -z | xargs -0 sha256sum > tptp/SHA256SUMS
+          rm -rf extracted "TPTP-v${TPTP_VERSION}.tgz"
 
       - name: Learn random 95 percent with forced held-out target
         shell: bash
