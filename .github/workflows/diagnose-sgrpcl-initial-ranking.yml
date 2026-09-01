@@ -1,0 +1,93 @@
+name: Diagnose sgrpcl initial ranking
+
+on:
+  push:
+    branches: [data-mind-2.6-quotient-hunter]
+    paths:
+      - '.github/workflows/diagnose-sgrpcl-initial-ranking.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  ATP_COMMIT: ad2300ab1a47119f93f3417bc52c348f87e57c62
+  SETMM_COMMIT: cd577894d8e6bf8b4fe8014c0d525d531507e4b7
+  SETMM_SHA256: 1016d7edb0508abde0fe240bb5243e588c5067f8cb10ee6e1cc5733fc05acdb5
+  TRAINING_RUN_ID: '33415636479'
+  TRAINING_ARTIFACT: data-mind-2.6-setmm95-pretraining-33415636479
+  RANKER_FILE_SHA256: 45e4eb417186257799a2e985ecd7f16c43b49c067f55f0ff7e19f5681c09472c
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/checkout@v4
+        with:
+          repository: btenneson/ATP
+          ref: ${{ env.ATP_COMMIT }}
+          path: upstream_atp
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Retrieve frozen education checkpoint
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.TRAINING_ARTIFACT }}
+          path: checkpoint
+          github-token: ${{ github.token }}
+          repository: btenneson/Data-ATP
+          run-id: ${{ env.TRAINING_RUN_ID }}
+
+      - name: Run one-expansion read-only postmortem
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          curl -L --retry 3 --fail -o 'upstream_atp/predator 8/set.mm' \
+            "https://raw.githubusercontent.com/metamath/set.mm/$SETMM_COMMIT/set.mm"
+          test "$(sha256sum 'upstream_atp/predator 8/set.mm' | awk '{print $1}')" = "$SETMM_SHA256"
+          test "$(sha256sum checkpoint/ranker95.json | awk '{print $1}')" = "$RANKER_FILE_SHA256"
+          timeout 180 env PYTHONPATH="$GITHUB_WORKSPACE/src" \
+            python -u experiments/diagnose_sgrpcl_initial_ranking.py \
+              --educated-ranker "$GITHUB_WORKSPACE/checkpoint/ranker95.json" \
+              --education-blend 1.0 \
+              --version 2.4 \
+              --problem-id DM-PB-0001 \
+              --run-id sgrpcl-ranking-diagnostic-${GITHUB_RUN_ID} \
+              --memory results/memory.jsonl \
+              --shortcut-ledger results/shortcut.jsonl \
+              --exposure-ledger results/exposure.jsonl \
+              --module-ledger results/module.jsonl \
+              --module-adaptation false \
+              --atp-root "$GITHUB_WORKSPACE/upstream_atp" \
+              --setmm "$GITHUB_WORKSPACE/upstream_atp/predator 8/set.mm" \
+              --target sgrpcl \
+              --budget 1 \
+              --max-depth 12 \
+              --agents 1 \
+              --creativity 0.55 \
+              --seed 2301 \
+              --opener-cap 48 \
+              --max-open 8 \
+              --progress 1 \
+              --out results/candidate.mm \
+              --transactions results/transactions.jsonl \
+              --summary results/pre.json || true
+          echo '--- diagnostic ---'
+          cat results/sgrpcl-ranking-diagnostic.json
+
+      - name: Upload diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sgrpcl-ranking-diagnostic-${{ github.run_id }}
+          path: results/
+          if-no-files-found: error
+          retention-days: 30
