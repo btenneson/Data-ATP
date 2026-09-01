@@ -27,6 +27,14 @@ from .events import EventType, Transaction, TransactionLog
 from .future_bank import FutureBank, FutureBankView, FutureItem
 from .picard import PicardCommand, PicardController, PicardStatus, RunControlState
 from .pric_bank import AgentProposal, AgentStepResult, FutureProposal, PRICBankCoordinator
+from .sentinel import (
+    ResourceSample,
+    RobustBaseline,
+    Sentinel,
+    SentinelConfig,
+    SentinelDecision,
+    fit_robust_baseline,
+)
 from .shared_bank import BankItem, BankView, SharedBank
 
 __all__ = [
@@ -55,14 +63,20 @@ __all__ = [
     "PicardCommand",
     "PicardController",
     "PicardStatus",
+    "ResourceSample",
+    "RobustBaseline",
     "RunControlState",
     "RunOutcome",
+    "Sentinel",
+    "SentinelConfig",
+    "SentinelDecision",
     "SharedBank",
     "Transaction",
     "TransactionLog",
     "completed_level_for_budget",
     "coverage_defect_bound",
     "cumulative_nominal_length",
+    "fit_robust_baseline",
     "hierarchical_atp_defect",
     "nominal_stage_length",
 ]
