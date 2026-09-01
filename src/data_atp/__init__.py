@@ -25,12 +25,15 @@ from .coverage import (
 from .engine import AccountableSearchEngine, RunOutcome
 from .events import EventType, Transaction, TransactionLog
 from .picard import PicardCommand, PicardController, PicardStatus, RunControlState
+from .shared_bank import BankItem, BankView, SharedBank
 
 __all__ = [
     "AccountableAutonomyController",
     "AccountableSearchEngine",
     "ActionCandidate",
     "AuthorityLevel",
+    "BankItem",
+    "BankView",
     "CHECKPOINT_SCHEMA_VERSION",
     "CheckpointError",
     "CheckpointManager",
@@ -45,6 +48,7 @@ __all__ = [
     "PicardStatus",
     "RunControlState",
     "RunOutcome",
+    "SharedBank",
     "Transaction",
     "TransactionLog",
     "completed_level_for_budget",
