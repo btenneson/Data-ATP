@@ -1,0 +1,88 @@
+name: DATA-MIND 2.8 — Sentinel quartfull preflight
+
+on:
+  push:
+    branches: [experiment-78-outlier-sentinel-6h]
+    paths:
+      - '.github/workflows/data-mind-2-8-sentinel-preflight.yml'
+      - 'experiments/data_mind_2_8_sentinel_guarded_region.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  ATP_COMMIT: ad2300ab1a47119f93f3417bc52c348f87e57c62
+  SETMM_COMMIT: cd577894d8e6bf8b4fe8014c0d525d531507e4b7
+  SETMM_SHA256: 1016d7edb0508abde0fe240bb5243e588c5067f8cb10ee6e1cc5733fc05acdb5
+  TARGET: sgrpcl
+  FRACTION: '0.95'
+  OLD_TRAINING_RUN_ID: '33415636479'
+  OLD_TRAINING_ARTIFACT: data-mind-2.6-setmm95-pretraining-33415636479
+  OLD_RANKER_FILE_SHA256: 45e4eb417186257799a2e985ecd7f16c43b49c067f55f0ff7e19f5681c09472c
+
+jobs:
+  sentinel-preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: btenneson/ATP
+          ref: ${{ env.ATP_COMMIT }}
+          path: upstream_atp
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check numpy
+      - name: Retrieve exact frozen 95% cohort checkpoint
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.OLD_TRAINING_ARTIFACT }}
+          path: checkpoint26
+          github-token: ${{ github.token }}
+          repository: btenneson/Data-ATP
+          run-id: ${{ env.OLD_TRAINING_RUN_ID }}
+      - name: Verify pinned inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results/dm28-sentinel-preflight
+          curl -L --retry 3 --fail -o 'upstream_atp/predator 8/set.mm' "https://raw.githubusercontent.com/metamath/set.mm/$SETMM_COMMIT/set.mm"
+          test "$(sha256sum 'upstream_atp/predator 8/set.mm' | awk '{print $1}')" = "$SETMM_SHA256"
+          test "$(sha256sum checkpoint26/ranker95.json | awk '{print $1}')" = "$OLD_RANKER_FILE_SHA256"
+          python -m py_compile experiments/data_mind_2_8_sentinel_guarded_region.py experiments/data_mind_2_8_train_proof_horizon95.py experiments/data_mind_2_6_setmm95_pretrain.py
+      - name: Preflight around known quartfull position
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT='results/dm28-sentinel-preflight'
+          PYTHONPATH="$GITHUB_WORKSPACE/upstream_atp:$GITHUB_WORKSPACE/upstream_atp/predator 8:$GITHUB_WORKSPACE/experiments:$GITHUB_WORKSPACE" \
+            python -u experiments/data_mind_2_8_sentinel_guarded_region.py \
+              --db "$GITHUB_WORKSPACE/upstream_atp/predator 8/set.mm" \
+              --ml-sic "$GITHUB_WORKSPACE/upstream_atp/ml_sic_atp.py" \
+              --sanitizer "$GITHUB_WORKSPACE/experiments/data_mind_2_6_setmm95_pretrain.py" \
+              --atp-root "$GITHUB_WORKSPACE/upstream_atp" \
+              --old-ranker "$GITHUB_WORKSPACE/checkpoint26/ranker95.json" \
+              --target "$TARGET" --fraction "$FRACTION" \
+              --start 33555 --end 33565 --calibration-n 250 \
+              --out "$OUT"
+          test -s "$OUT/summary.json"
+          python - <<'PY'
+          import json
+          s=json.load(open('results/dm28-sentinel-preflight/summary.json'))
+          q=[x for x in s['quarantined'] if x['name']=='quartfull']
+          assert q, s
+          assert s['counts']['error']==0, s
+          print('PREFLIGHT_PASS quartfull quarantined; run continued')
+          PY
+      - name: Upload preflight artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: data-mind-2.8-sentinel-preflight-${{ github.run_id }}
+          path: results/dm28-sentinel-preflight/
+          if-no-files-found: error
+          retention-days: 90
