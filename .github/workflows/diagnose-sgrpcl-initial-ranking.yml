@@ -58,14 +58,13 @@ jobs:
             python -u experiments/diagnose_sgrpcl_initial_ranking.py \
               --educated-ranker "$GITHUB_WORKSPACE/checkpoint/ranker95.json" \
               --education-blend 1.0 \
-              --version 2.4 \
+              --version 2.3 \
               --problem-id DM-PB-0001 \
               --run-id sgrpcl-ranking-diagnostic-${GITHUB_RUN_ID} \
               --memory results/memory.jsonl \
               --shortcut-ledger results/shortcut.jsonl \
               --exposure-ledger results/exposure.jsonl \
               --module-ledger results/module.jsonl \
-              --module-adaptation false \
               --atp-root "$GITHUB_WORKSPACE/upstream_atp" \
               --setmm "$GITHUB_WORKSPACE/upstream_atp/predator 8/set.mm" \
               --target sgrpcl \
