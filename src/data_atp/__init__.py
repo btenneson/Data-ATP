@@ -25,12 +25,15 @@ from .coverage import (
 from .engine import AccountableSearchEngine, RunOutcome
 from .events import EventType, Transaction, TransactionLog
 from .picard import PicardCommand, PicardController, PicardStatus, RunControlState
+from .pric_bank import AgentProposal, AgentStepResult, PRICBankCoordinator
 from .shared_bank import BankItem, BankView, SharedBank
 
 __all__ = [
     "AccountableAutonomyController",
     "AccountableSearchEngine",
     "ActionCandidate",
+    "AgentProposal",
+    "AgentStepResult",
     "AuthorityLevel",
     "BankItem",
     "BankView",
@@ -43,6 +46,7 @@ __all__ = [
     "Evidence",
     "EventType",
     "ExceptionPolicy",
+    "PRICBankCoordinator",
     "PicardCommand",
     "PicardController",
     "PicardStatus",
