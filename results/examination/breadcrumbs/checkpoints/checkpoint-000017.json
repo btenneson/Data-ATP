@@ -1,0 +1,130 @@
+{
+  "checkpoint_sequence": 17,
+  "created_utc": "2026-09-02T18:53:28.239253+00:00",
+  "metadata": {
+    "breadcrumb_kind": "RUN_FINISHED",
+    "breadcrumb_transaction_digest": "7caedabf0a6d2a8a49b0fadce7e64dfec4a6b39624a206bf754bff6bf6ded969",
+    "breadcrumb_transaction_sequence": 58,
+    "status": "BOUNDED_UNKNOWN",
+    "verifier_gate_passed": false
+  },
+  "run_id": "dm211-examine-33669207883",
+  "schema_version": "0.1",
+  "snapshot": {
+    "active_attempt": null,
+    "architecture_version": "2.11",
+    "attempt_index": null,
+    "candidate_keys": [
+      "reordered:default",
+      "reordered:sine_auto",
+      "original:default",
+      "original:sine_auto"
+    ],
+    "completed_runs": [
+      {
+        "abnormal_termination": false,
+        "adapter_error": null,
+        "allocated_seconds": 75,
+        "command": [
+          "eprover",
+          "--tptp3-format",
+          "--proof-object",
+          "--cpu-limit=75",
+          "results/examination/GRP619+1.p.dm210-reordered.p"
+        ],
+        "elapsed_seconds": 76.84732051399999,
+        "log": "e_reordered_default.log",
+        "outcome_class": "RESOURCE_LIMIT",
+        "pid": 3020,
+        "problem_form": "reordered",
+        "proof_marker_present": false,
+        "returncode": 8,
+        "sentinel_decision": "allow_internal",
+        "strategy": "default",
+        "szs_status": null,
+        "verifier_accepted": false,
+        "wall_timed_out": false
+      },
+      {
+        "abnormal_termination": false,
+        "adapter_error": null,
+        "allocated_seconds": 74,
+        "command": [
+          "eprover",
+          "--sine=Auto",
+          "--tptp3-format",
+          "--proof-object",
+          "--cpu-limit=74",
+          "results/examination/GRP619+1.p.dm210-reordered.p"
+        ],
+        "elapsed_seconds": 75.838606131,
+        "log": "e_reordered_sine_auto.log",
+        "outcome_class": "RESOURCE_LIMIT",
+        "pid": 3061,
+        "problem_form": "reordered",
+        "proof_marker_present": false,
+        "returncode": 8,
+        "sentinel_decision": "allow_internal",
+        "strategy": "sine_auto",
+        "szs_status": null,
+        "verifier_accepted": false,
+        "wall_timed_out": false
+      },
+      {
+        "abnormal_termination": false,
+        "adapter_error": null,
+        "allocated_seconds": 72,
+        "command": [
+          "eprover",
+          "--tptp3-format",
+          "--proof-object",
+          "--cpu-limit=72",
+          "/home/runner/work/Data-ATP/Data-ATP/TPTP-v9.3.1/Problems/GRP/GRP619+1.p"
+        ],
+        "elapsed_seconds": 73.90444599400001,
+        "log": "e_original_default.log",
+        "outcome_class": "RESOURCE_LIMIT",
+        "pid": 3133,
+        "problem_form": "original",
+        "proof_marker_present": false,
+        "returncode": 8,
+        "sentinel_decision": "allow_internal",
+        "strategy": "default",
+        "szs_status": null,
+        "verifier_accepted": false,
+        "wall_timed_out": false
+      },
+      {
+        "abnormal_termination": false,
+        "adapter_error": null,
+        "allocated_seconds": 69,
+        "command": [
+          "eprover",
+          "--sine=Auto",
+          "--tptp3-format",
+          "--proof-object",
+          "--cpu-limit=69",
+          "/home/runner/work/Data-ATP/Data-ATP/TPTP-v9.3.1/Problems/GRP/GRP619+1.p"
+        ],
+        "elapsed_seconds": 70.89265783499997,
+        "log": "e_original_sine_auto.log",
+        "outcome_class": "RESOURCE_LIMIT",
+        "pid": 3171,
+        "problem_form": "original",
+        "proof_marker_present": false,
+        "returncode": 8,
+        "sentinel_decision": "allow_internal",
+        "strategy": "sine_auto",
+        "szs_status": null,
+        "verifier_accepted": false,
+        "wall_timed_out": false
+      }
+    ],
+    "next_attempt_index": 4,
+    "phase": "finished",
+    "recovery_action": "none",
+    "spent_seconds": 303.50910513200006,
+    "target": "GRP619+1.p",
+    "total_budget_seconds": 300
+  }
+}
