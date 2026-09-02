@@ -1,0 +1,57 @@
+{
+  "checkpoint_sequence": 6,
+  "created_utc": "2026-09-02T19:31:57.466384+00:00",
+  "metadata": {
+    "breadcrumb_kind": "POST_EXTERNAL_PROVER",
+    "breadcrumb_transaction_digest": "9e593a65655432efe41410cfa5ab81aed951ee540238426fcce27b60bb3293ee",
+    "breadcrumb_transaction_sequence": 21,
+    "outcome_class": "SENTINEL_RESOURCE_STOP",
+    "returncode": -15,
+    "szs_status": null,
+    "wall_timed_out": false
+  },
+  "run_id": "dm211-examine-33673419529",
+  "schema_version": "0.1",
+  "snapshot": {
+    "active_attempt": null,
+    "architecture_version": "2.11",
+    "attempt_index": 0,
+    "candidate_keys": [
+      "reordered:default",
+      "reordered:sine_auto",
+      "original:default",
+      "original:sine_auto"
+    ],
+    "completed_runs": [
+      {
+        "abnormal_termination": false,
+        "adapter_error": null,
+        "allocated_seconds": 450,
+        "command": [
+          "eprover",
+          "--tptp3-format",
+          "--proof-object",
+          "--cpu-limit=450",
+          "results/examination/GRP619+1.p.dm210-reordered.p"
+        ],
+        "elapsed_seconds": 112.299666823,
+        "log": "e_reordered_default.log",
+        "outcome_class": "SENTINEL_RESOURCE_STOP",
+        "pid": 3043,
+        "proof_marker_present": false,
+        "returncode": -15,
+        "sentinel_decision": "allow_internal",
+        "strategy": "default",
+        "szs_status": null,
+        "verifier_accepted": false,
+        "wall_timed_out": false
+      }
+    ],
+    "next_attempt_index": 1,
+    "phase": "post_external_prover",
+    "recovery_action": "continue_from_next_attempt",
+    "spent_seconds": 112.299672612,
+    "target": "GRP619+1.p",
+    "total_budget_seconds": 1800
+  }
+}
