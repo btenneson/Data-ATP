@@ -1,0 +1,58 @@
+{
+  "checkpoint_sequence": 5,
+  "created_utc": "2026-09-02T19:31:55.067658+00:00",
+  "metadata": {
+    "available_fraction": 0.2245322489112253,
+    "breadcrumb_kind": "SENTINEL_RESOURCE_STOP",
+    "breadcrumb_transaction_digest": "7e308d89874bbc256f3dc078837804ca9cd0276b9a6d63139acf10fa40b51b05",
+    "breadcrumb_transaction_sequence": 19,
+    "max_rss_fraction": 0.65,
+    "mem_available_kib": 3676368,
+    "mem_total_kib": 16373452,
+    "min_available_fraction": 0.2,
+    "pid": 3043,
+    "process_paused": true,
+    "reasons": [
+      "prover_rss_fraction"
+    ],
+    "rss_fraction": 0.7153782843104801,
+    "rss_kib": 11713212
+  },
+  "run_id": "dm211-examine-33673419529",
+  "schema_version": "0.1",
+  "snapshot": {
+    "active_attempt": {
+      "allocated_cpu_seconds": 450,
+      "command": [
+        "eprover",
+        "--tptp3-format",
+        "--proof-object",
+        "--cpu-limit=450",
+        "results/examination/GRP619+1.p.dm210-reordered.p"
+      ],
+      "elapsed_seconds": 110.01061854,
+      "log": "e_reordered_default.log",
+      "log_bytes": 2056192,
+      "peak_rss_kib": 11713212,
+      "pid": 3043,
+      "problem": "results/examination/GRP619+1.p.dm210-reordered.p",
+      "rss_kib": 11713212,
+      "strategy": "default"
+    },
+    "architecture_version": "2.11",
+    "attempt_index": 0,
+    "candidate_keys": [
+      "reordered:default",
+      "reordered:sine_auto",
+      "original:default",
+      "original:sine_auto"
+    ],
+    "completed_runs": [],
+    "next_attempt_index": 0,
+    "phase": "sentinel_resource_stop",
+    "recovery_action": "continue_from_next_attempt",
+    "spent_seconds": 110.010624329,
+    "target": "GRP619+1.p",
+    "total_budget_seconds": 1800
+  }
+}
