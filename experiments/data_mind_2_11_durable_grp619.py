@@ -23,6 +23,7 @@ import time
 from typing import Any, Mapping
 
 from data_atp.breadcrumbs import BreadcrumbManager as LocalBreadcrumbManager
+from data_atp.events import EventType
 
 import data_mind_2_11_tptp95_grp619 as dm211
 
@@ -137,7 +138,7 @@ class DurableBreadcrumbManager(LocalBreadcrumbManager):
                 # copy failed.  Record the remote failure in the same local,
                 # hash-chained log so the run can report degraded durability.
                 self.log.append(
-                    dm211.EventType.BREADCRUMB_RECORDED,
+                    EventType.BREADCRUMB_RECORDED,
                     {
                         "run_id": self.run_id,
                         "kind": "REMOTE_PUBLISH_FAILED",
