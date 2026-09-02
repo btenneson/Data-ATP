@@ -1,0 +1,50 @@
+{
+  "checkpoint_sequence": 2,
+  "created_utc": "2026-09-02T19:01:01.888825+00:00",
+  "metadata": {
+    "breadcrumb_kind": "CHECKPOINT_BARRIER",
+    "breadcrumb_transaction_digest": "d0a3c12ea4df225474add94291ec3183b6fe763ba7c52a53f84078c0b99be38a",
+    "breadcrumb_transaction_sequence": 7,
+    "peak_rss_kib": 3972240,
+    "pid": 2869,
+    "process_paused": true,
+    "rss_kib": 3972240
+  },
+  "run_id": "dm211-examine-33670285447",
+  "schema_version": "0.1",
+  "snapshot": {
+    "active_attempt": {
+      "allocated_cpu_seconds": 75,
+      "command": [
+        "eprover",
+        "--tptp3-format",
+        "--proof-object",
+        "--cpu-limit=75",
+        "results/examination/GRP619+1.p.dm210-reordered.p"
+      ],
+      "elapsed_seconds": 30.074787620999984,
+      "log": "e_reordered_default.log",
+      "log_bytes": 1216512,
+      "peak_rss_kib": 3972240,
+      "pid": 2869,
+      "problem": "results/examination/GRP619+1.p.dm210-reordered.p",
+      "rss_kib": 3972240,
+      "strategy": "default"
+    },
+    "architecture_version": "2.11",
+    "attempt_index": 0,
+    "candidate_keys": [
+      "reordered:default",
+      "reordered:sine_auto",
+      "original:default",
+      "original:sine_auto"
+    ],
+    "completed_runs": [],
+    "next_attempt_index": 0,
+    "phase": "external_prover_running",
+    "recovery_action": "restart_current_attempt",
+    "spent_seconds": 30.07479314899996,
+    "target": "GRP619+1.p",
+    "total_budget_seconds": 300
+  }
+}
