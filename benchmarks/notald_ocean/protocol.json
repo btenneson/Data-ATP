@@ -1,0 +1,54 @@
+{
+  "benchmark_name": "NOTALD Massive Tied-Ocean Benchmark",
+  "benchmark_version": "0.1-scaffold",
+  "status": "PROPOSAL_FREEZE_CANDIDATE",
+  "run_authorized": false,
+  "scored_run_authorized": false,
+  "depths": [10, 25, 75, 100, 250, 750, 1000, 2500, 7500, 10000, 25000, 75000, 100000, 250000, 750000],
+  "notald": {
+    "input_conjecture": "C_L = NOT T_L",
+    "prover_target": "Gamma_L |- NOT T_L",
+    "refuter_target": "Gamma_L |- NOT C_L -> T_L after frozen classical normalization",
+    "expected_conclusive_status": "REFUTED",
+    "timeout_status": "BOUNDED_UNKNOWN",
+    "invalid_settlements": ["INDEPENDENT", "INCONSISTENT"],
+    "dual_certified_polarities": "CRITICAL_AUDIT_FAILURE"
+  },
+  "systems": {
+    "principal_professional_atps": ["Vampire", "E", "iProver", "Prover9"],
+    "legacy_optional_unscored": ["SPASS"],
+    "research_systems": ["Depths-F", "Data-ATP", "DATA 2.0.1", "NOTALD"]
+  },
+  "training_policy": {
+    "held_out_target_in_training": false,
+    "answer_label_in_training": false,
+    "shortest_route_in_training": false,
+    "target_specific_certificate_in_training": false,
+    "lower_resolution_bundle": null,
+    "predecessor_exposure_rule": null
+  },
+  "freeze": {
+    "ocean_geometry": null,
+    "seeds_per_depth": null,
+    "software_versions": null,
+    "resource_budgets": null,
+    "double_negation_normalization": null,
+    "certificate_verifier": null,
+    "proof_counting_convention": null,
+    "blinding_procedure": null,
+    "scoring_rules": null
+  },
+  "required_before_run": [
+    "ocean_geometry",
+    "seeds_per_depth",
+    "software_versions",
+    "resource_budgets",
+    "lower_resolution_bundle",
+    "predecessor_exposure_rule",
+    "double_negation_normalization",
+    "certificate_verifier",
+    "proof_counting_convention",
+    "blinding_procedure",
+    "scoring_rules"
+  ]
+}
