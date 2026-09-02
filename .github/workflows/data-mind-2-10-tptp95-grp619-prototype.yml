@@ -24,7 +24,7 @@ permissions:
 env:
   TPTP_VERSION: '9.3.1'
   TARGET: 'GRP619+1.p'
-  TARGET_SECONDS: ${{ github.event_name == 'workflow_dispatch' && inputs.target_seconds || '300' }}
+  TARGET_SECONDS: ${{ contains(github.event.head_commit.message, '[6h]') && '21600' || (github.event_name == 'workflow_dispatch' && inputs.target_seconds || '300') }}
   FROZEN_SNAPSHOT_COMMIT: '946ed4816dd0928f800165bef189df02f1560018'
 
 jobs:
