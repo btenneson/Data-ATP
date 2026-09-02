@@ -1,0 +1,137 @@
+name: DATA-MIND 2.10 — TPTP held-out GRP619 prototype
+
+on:
+  push:
+    branches: [experiment/dm210-tptp95-grp619-prototype]
+    paths:
+      - '.github/workflows/data-mind-2-10-tptp95-grp619-prototype.yml'
+      - 'experiments/data_mind_2_10_tptp95_grp619.py'
+      - 'experiments/data_mind_2_7_tptp95_proof_density.py'
+      - 'experiments/data_mind_2_6_tptp95_pilot.py'
+      - 'src/data_atp/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  TPTP_VERSION: '9.3.1'
+  TARGET: 'GRP619+1.p'
+  TARGET_SECONDS: '21600'
+  FROZEN_SNAPSHOT_COMMIT: '946ed4816dd0928f800165bef189df02f1560018'
+
+jobs:
+  heldout-settlement:
+    name: dm210-grp619-heldout-verifier-gated-6h
+    runs-on: ubuntu-24.04
+    timeout-minutes: 430
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install E and Python dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq eprover
+          python -m pip install --disable-pip-version-check -q numpy
+          python -m pip install --disable-pip-version-check -e .
+          eprover --version | head -20
+
+      - name: Restore and audit the frozen 171/9 education policy
+        shell: bash
+        run: |
+          set -euo pipefail
+          SNAP=training_snapshots/dm27_tptp95_proof_density_6h_001/metadata
+          mkdir -p frozen_policy
+          git show "$FROZEN_SNAPSHOT_COMMIT:$SNAP/tptp95_policy.json" > frozen_policy/tptp95_policy.json
+          git show "$FROZEN_SNAPSHOT_COMMIT:$SNAP/split_manifest.json" > frozen_policy/split_manifest.json
+          git show "$FROZEN_SNAPSHOT_COMMIT:$SNAP/TRAINING_COMPLETE" > frozen_policy/TRAINING_COMPLETE
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('frozen_policy/tptp95_policy.json').read_text())
+          m=json.loads(Path('frozen_policy/split_manifest.json').read_text())
+          assert p['target']==m['target']=='GRP619+1.p'
+          assert m['training_count']==171 and m['holdout_count']==9
+          assert m['target_in_training'] is False
+          assert m['same_abstract_problem_variants_in_training'] is False
+          assert not any(x.startswith('GRP619') for x in m['training_files'])
+          print('FROZEN_SPLIT_AUDIT=VERIFIED')
+          PY
+
+      - name: Download complete official TPTP release before examination
+        shell: bash
+        run: |
+          set -euo pipefail
+          ARCHIVE="TPTP-v${TPTP_VERSION}.tgz"
+          URL="https://tptp.org/TPTP/Distribution/${ARCHIVE}"
+          curl -fL --retry 5 --retry-delay 5 --connect-timeout 30 --output "$ARCHIVE" "$URL"
+          test -s "$ARCHIVE"
+          tar -xzf "$ARCHIVE" "TPTP-v${TPTP_VERSION}/Problems/GRP" "TPTP-v${TPTP_VERSION}/Axioms"
+          ROOT="$GITHUB_WORKSPACE/TPTP-v${TPTP_VERSION}"
+          test -f "$ROOT/Problems/GRP/$TARGET"
+          echo "TPTP_ROOT=$ROOT" >> "$GITHUB_ENV"
+
+      - name: Sentinel 60-second adapter smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results/smoke
+          python -u experiments/data_mind_2_10_tptp95_grp619.py smoke \
+            --tptp-root "$TPTP_ROOT" \
+            --policy frozen_policy/tptp95_policy.json \
+            --manifest frozen_policy/split_manifest.json \
+            --seconds 30 --out results/smoke \
+            2>&1 | tee results/smoke/smoke.log
+
+      - name: Run verifier-gated held-out settlement examination
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results/examination
+          python -u experiments/data_mind_2_10_tptp95_grp619.py examine \
+            --tptp-root "$TPTP_ROOT" \
+            --policy frozen_policy/tptp95_policy.json \
+            --manifest frozen_policy/split_manifest.json \
+            --smoke-result results/smoke/smoke_result.json \
+            --total-seconds "$TARGET_SECONDS" --out results/examination \
+            2>&1 | tee results/examination/examination.log
+
+      - name: Publish concise result to job summary
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          from pathlib import Path
+          p=Path('results/examination/result.json')
+          print('# DATA-MIND 2.10 held-out TPTP prototype')
+          if not p.exists():
+              print('\nInfrastructure failed before a result was produced.')
+          else:
+              r=json.loads(p.read_text())
+              print(f"\n- Target: `{r['target']}`")
+              print(f"- Result: **{r['status']}**")
+              print(f"- Verifier gate: `{r['verifier_gate_passed']}`")
+              print(f"- Target/family seen in training: `False` / `False`")
+              print(f"- Elapsed seconds: `{r['elapsed_seconds']:.3f}`")
+          PY
+
+      - name: Upload full evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dm210-tptp95-grp619-${{ github.run_id }}
+          path: |
+            results/
+            frozen_policy/
+          if-no-files-found: warn
+          retention-days: 90
