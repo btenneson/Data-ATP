@@ -1,4 +1,6 @@
-"""Data-ATP Phase 0 executable interfaces."""
+"""Data-ATP executable interfaces."""
+
+DATA_MIND_ARCHITECTURE_VERSION = "2.10"
 
 from .autonomy import (
     AccountableAutonomyController,
@@ -24,6 +26,12 @@ from .coverage import (
 )
 from .engine import AccountableSearchEngine, RunOutcome
 from .events import EventType, SecurityFlag, Transaction, TransactionLog
+from .federated_bank import (
+    DEFAULT_COUPLINGS,
+    FederatedBank,
+    FederatedBankView,
+    PropagationMode,
+)
 from .future_bank import FutureBank, FutureBankView, FutureItem
 from .picard import PicardCommand, PicardController, PicardStatus, RunControlState
 from .pric_bank import AgentProposal, AgentStepResult, FutureProposal, PRICBankCoordinator
@@ -54,11 +62,15 @@ __all__ = [
     "CheckpointError",
     "CheckpointManager",
     "CheckpointManifest",
+    "DATA_MIND_ARCHITECTURE_VERSION",
+    "DEFAULT_COUPLINGS",
     "Decision",
     "Directive",
     "Evidence",
     "EventType",
     "ExceptionPolicy",
+    "FederatedBank",
+    "FederatedBankView",
     "FutureBank",
     "FutureBankView",
     "FutureItem",
@@ -67,6 +79,7 @@ __all__ = [
     "PicardCommand",
     "PicardController",
     "PicardStatus",
+    "PropagationMode",
     "QuarantineBank",
     "QuarantineRecord",
     "ResourceSample",
