@@ -27,12 +27,24 @@ from .events import EventType, Transaction, TransactionLog
 from .future_bank import FutureBank, FutureBankView, FutureItem
 from .picard import PicardCommand, PicardController, PicardStatus, RunControlState
 from .pric_bank import AgentProposal, AgentStepResult, FutureProposal, PRICBankCoordinator
+from .sentinel import (
+    ActionContext,
+    QuarantineBank,
+    QuarantineRecord,
+    ResourceSample,
+    SecurityAssessment,
+    SecurityClass,
+    SecurityGovernor,
+    SentinelDecision,
+    SentinelPolicy,
+)
 from .shared_bank import BankItem, BankView, SharedBank
 
 __all__ = [
     "AccountableAutonomyController",
     "AccountableSearchEngine",
     "ActionCandidate",
+    "ActionContext",
     "AgentProposal",
     "AgentStepResult",
     "AuthorityLevel",
@@ -55,8 +67,16 @@ __all__ = [
     "PicardCommand",
     "PicardController",
     "PicardStatus",
+    "QuarantineBank",
+    "QuarantineRecord",
+    "ResourceSample",
     "RunControlState",
     "RunOutcome",
+    "SecurityAssessment",
+    "SecurityClass",
+    "SecurityGovernor",
+    "SentinelDecision",
+    "SentinelPolicy",
     "SharedBank",
     "Transaction",
     "TransactionLog",
