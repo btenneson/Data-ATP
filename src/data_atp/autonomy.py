@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
+from typing import FrozenSet, Mapping
 
 from .events import EventType, TransactionLog
+from .sentinel import SecurityClass
 
 
 class AuthorityLevel(StrEnum):
@@ -21,6 +23,7 @@ class Decision(StrEnum):
     REJECT_HARD_CONFLICT = "reject_hard_conflict"
     REJECT_BUDGET = "reject_budget"
     REJECT_WEAK_EVIDENCE = "reject_weak_evidence"
+    REJECT_SECURITY = "reject_security"
 
 
 @dataclass(frozen=True, slots=True)
@@ -52,6 +55,11 @@ class ActionCandidate:
     legal: bool
     estimated_cost: int
     return_point: str
+    capabilities: FrozenSet[str] = frozenset()
+    target_scope: str = "internal"
+    security_class: SecurityClass = SecurityClass.BENIGN
+    human_approved: bool = False
+    security_metadata: Mapping[str, object] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if self.estimated_cost < 0:
@@ -74,12 +82,7 @@ class AutonomyDecision:
 
 
 class AccountableAutonomyController:
-    """Decide whether a proposed search action may depart from a directive.
-
-    Legality is checked before evidence strength or heuristic value. Hard
-    invariants are not overrideable. Soft directives can be overridden only
-    by bounded, logged, reviewable evidence.
-    """
+    """Decide whether a proposed search action may depart from a directive."""
 
     def __init__(self, log: TransactionLog, policy: ExceptionPolicy | None = None) -> None:
         self.log = log
