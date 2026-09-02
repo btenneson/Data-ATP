@@ -1,0 +1,125 @@
+{
+  "checkpoint_sequence": 15,
+  "created_utc": "2026-09-02T18:53:15.907560+00:00",
+  "metadata": {
+    "breadcrumb_kind": "CHECKPOINT_BARRIER",
+    "breadcrumb_transaction_digest": "c2cddef18af4f903943692a5033868b3b18fd0a7bea9ed4358e2ebfb39994483",
+    "breadcrumb_transaction_sequence": 53,
+    "peak_rss_kib": 6630056,
+    "pid": 3171,
+    "process_paused": true,
+    "rss_kib": 6630056
+  },
+  "run_id": "dm211-examine-33669207883",
+  "schema_version": "0.1",
+  "snapshot": {
+    "active_attempt": {
+      "allocated_cpu_seconds": 69,
+      "command": [
+        "eprover",
+        "--sine=Auto",
+        "--tptp3-format",
+        "--proof-object",
+        "--cpu-limit=69",
+        "/home/runner/work/Data-ATP/Data-ATP/TPTP-v9.3.1/Problems/GRP/GRP619+1.p"
+      ],
+      "elapsed_seconds": 60.08180782199997,
+      "log": "e_original_sine_auto.log",
+      "log_bytes": 1593344,
+      "peak_rss_kib": 6630056,
+      "pid": 3171,
+      "problem": "/home/runner/work/Data-ATP/Data-ATP/TPTP-v9.3.1/Problems/GRP/GRP619+1.p",
+      "rss_kib": 6630056,
+      "strategy": "sine_auto"
+    },
+    "architecture_version": "2.11",
+    "attempt_index": 3,
+    "candidate_keys": [
+      "reordered:default",
+      "reordered:sine_auto",
+      "original:default",
+      "original:sine_auto"
+    ],
+    "completed_runs": [
+      {
+        "abnormal_termination": false,
+        "adapter_error": null,
+        "allocated_seconds": 75,
+        "command": [
+          "eprover",
+          "--tptp3-format",
+          "--proof-object",
+          "--cpu-limit=75",
+          "results/examination/GRP619+1.p.dm210-reordered.p"
+        ],
+        "elapsed_seconds": 76.84732051399999,
+        "log": "e_reordered_default.log",
+        "outcome_class": "RESOURCE_LIMIT",
+        "pid": 3020,
+        "problem_form": "reordered",
+        "proof_marker_present": false,
+        "returncode": 8,
+        "sentinel_decision": "allow_internal",
+        "strategy": "default",
+        "szs_status": null,
+        "verifier_accepted": false,
+        "wall_timed_out": false
+      },
+      {
+        "abnormal_termination": false,
+        "adapter_error": null,
+        "allocated_seconds": 74,
+        "command": [
+          "eprover",
+          "--sine=Auto",
+          "--tptp3-format",
+          "--proof-object",
+          "--cpu-limit=74",
+          "results/examination/GRP619+1.p.dm210-reordered.p"
+        ],
+        "elapsed_seconds": 75.838606131,
+        "log": "e_reordered_sine_auto.log",
+        "outcome_class": "RESOURCE_LIMIT",
+        "pid": 3061,
+        "problem_form": "reordered",
+        "proof_marker_present": false,
+        "returncode": 8,
+        "sentinel_decision": "allow_internal",
+        "strategy": "sine_auto",
+        "szs_status": null,
+        "verifier_accepted": false,
+        "wall_timed_out": false
+      },
+      {
+        "abnormal_termination": false,
+        "adapter_error": null,
+        "allocated_seconds": 72,
+        "command": [
+          "eprover",
+          "--tptp3-format",
+          "--proof-object",
+          "--cpu-limit=72",
+          "/home/runner/work/Data-ATP/Data-ATP/TPTP-v9.3.1/Problems/GRP/GRP619+1.p"
+        ],
+        "elapsed_seconds": 73.90444599400001,
+        "log": "e_original_default.log",
+        "outcome_class": "RESOURCE_LIMIT",
+        "pid": 3133,
+        "problem_form": "original",
+        "proof_marker_present": false,
+        "returncode": 8,
+        "sentinel_decision": "allow_internal",
+        "strategy": "default",
+        "szs_status": null,
+        "verifier_accepted": false,
+        "wall_timed_out": false
+      }
+    ],
+    "next_attempt_index": 3,
+    "phase": "external_prover_running",
+    "recovery_action": "restart_current_attempt",
+    "spent_seconds": 291.177023859,
+    "target": "GRP619+1.p",
+    "total_budget_seconds": 300
+  }
+}
