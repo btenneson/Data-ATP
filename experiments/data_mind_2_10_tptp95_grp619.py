@@ -109,7 +109,7 @@ def run_e(problem: Path, root: Path, strategy: str, seconds: int) -> dict:
     }
 
 
-def prepare_problem(root: Path, policy: dict, out: Path) -> tuple[Path, list[dict]]:
+def prepare_problem(root: Path, policy: dict, out: Path) -> tuple[dict[str, Path], list[dict]]:
     original = root / "Problems" / "GRP" / TARGET
     if not original.is_file():
         raise RuntimeError(f"held-out target missing: {original}")
@@ -117,21 +117,28 @@ def prepare_problem(root: Path, policy: dict, out: Path) -> tuple[Path, list[dic
     problem = out / f"{TARGET}.dm210-reordered.p"
     problem.write_text(dm27.base.reorder_target(text, policy), encoding="utf-8")
     table = dm27.objective_table(text, policy)
-    return problem, table
+    return {"original": original, "reordered": problem}, table
 
 
 def smoke(args: argparse.Namespace) -> int:
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     policy, audit = validate_frozen_inputs(Path(args.policy), Path(args.manifest))
-    problem, table = prepare_problem(Path(args.tptp_root), policy, out)
+    problems, table = prepare_problem(Path(args.tptp_root), policy, out)
     runs = []
-    for strategy in STRATEGIES:
-        result = run_e(problem, Path(args.tptp_root), strategy, args.seconds)
-        output = result.pop("output")
-        (out / f"smoke_{strategy}.log").write_text(output, encoding="utf-8")
-        runs.append(result)
-    viable = [r["strategy"] for r in runs if not r["abnormal_termination"]]
+    for problem_form, problem in problems.items():
+        for strategy in STRATEGIES:
+            result = run_e(problem, Path(args.tptp_root), strategy, args.seconds)
+            output = result.pop("output")
+            log = out / f"smoke_{problem_form}_{strategy}.log"
+            log.write_text(output, encoding="utf-8")
+            result["problem_form"] = problem_form
+            result["log"] = log.name
+            runs.append(result)
+    viable = [
+        {"problem_form": r["problem_form"], "strategy": r["strategy"]}
+        for r in runs if not r["abnormal_termination"]
+    ]
     result = {
         "status": "SMOKE_PASS" if viable else "SMOKE_FAIL",
         "architecture_version": ARCH,
@@ -150,18 +157,29 @@ def examine(args: argparse.Namespace) -> int:
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     policy, audit = validate_frozen_inputs(Path(args.policy), Path(args.manifest))
-    problem, table = prepare_problem(Path(args.tptp_root), policy, out)
+    problems, table = prepare_problem(Path(args.tptp_root), policy, out)
     smoke_result = json.loads(Path(args.smoke_result).read_text(encoding="utf-8"))
-    viable = [name for name in smoke_result.get("viable_strategies", []) if name in STRATEGIES]
+    viable = [
+        item for item in smoke_result.get("viable_strategies", [])
+        if item.get("strategy") in STRATEGIES and item.get("problem_form") in problems
+    ]
     if not viable:
         raise RuntimeError("no Sentinel-approved strategy survived smoke test")
+
+    # Prefer learned reordering whenever it is healthy; preserve the untouched
+    # official input as a fail-safe adapter rather than confusing an adapter
+    # defect with failure to settle the theorem.
+    viable.sort(key=lambda item: (item["problem_form"] != "reordered", item["strategy"]))
 
     # The frozen learner ties auto and auto_schedule on this target.  We retain
     # its reordered target and split budget equally over the safe E adapters.
     started = time.perf_counter()
     runs = []
     accepted = None
-    for index, strategy in enumerate(viable):
+    for index, candidate in enumerate(viable):
+        strategy = candidate["strategy"]
+        problem_form = candidate["problem_form"]
+        problem = problems[problem_form]
         remaining = args.total_seconds - int(time.perf_counter() - started)
         if remaining <= 0:
             break
@@ -169,9 +187,10 @@ def examine(args: argparse.Namespace) -> int:
         seconds = remaining if slots == 1 else max(1, remaining // slots)
         result = run_e(problem, Path(args.tptp_root), strategy, seconds)
         output = result.pop("output")
-        log = out / f"e_{strategy}.log"
+        log = out / f"e_{problem_form}_{strategy}.log"
         log.write_text(output, encoding="utf-8")
         result["log"] = log.name
+        result["problem_form"] = problem_form
         runs.append(result)
         if result["verifier_accepted"]:
             accepted = result

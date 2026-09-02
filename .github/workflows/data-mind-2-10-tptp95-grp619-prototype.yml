@@ -41,9 +41,15 @@ jobs:
           set -euo pipefail
           sudo apt-get update -qq
           sudo apt-get install -y -qq eprover
+          E_DEB=eprover_3.5.1+ds-1_amd64.deb
+          E_URL="https://security.ubuntu.com/ubuntu/pool/universe/e/eprover/$E_DEB"
+          curl -fL --retry 5 --retry-delay 3 --output "$E_DEB" "$E_URL"
+          test -s "$E_DEB"
+          sudo dpkg -i "$E_DEB"
           python -m pip install --disable-pip-version-check -q numpy
           python -m pip install --disable-pip-version-check -e .
-          eprover --version | head -20
+          eprover --version | tee eprover-version.txt
+          grep -q '3.5.1' eprover-version.txt
 
       - name: Restore and audit the frozen 171/9 education policy
         shell: bash
@@ -89,7 +95,7 @@ jobs:
             --tptp-root "$TPTP_ROOT" \
             --policy frozen_policy/tptp95_policy.json \
             --manifest frozen_policy/split_manifest.json \
-            --seconds 30 --out results/smoke \
+            --seconds 15 --out results/smoke \
             2>&1 | tee results/smoke/smoke.log
 
       - name: Run verifier-gated held-out settlement examination
@@ -133,5 +139,6 @@ jobs:
           path: |
             results/
             frozen_policy/
+            eprover-version.txt
           if-no-files-found: warn
           retention-days: 90
