@@ -1,0 +1,228 @@
+name: DATA-MIND 2.11 — durable breadcrumb GRP619 prototype
+
+on:
+  push:
+    branches: [experiment/dm211-durable-breadcrumbs]
+    paths:
+      - '.github/workflows/data-mind-2-11-durable-breadcrumb-grp619.yml'
+      - 'experiments/data_mind_2_11_durable_grp619.py'
+      - 'experiments/data_mind_2_11_tptp95_grp619.py'
+      - 'experiments/data_mind_2_10_tptp95_grp619.py'
+      - 'experiments/data_mind_2_7_tptp95_proof_density.py'
+      - 'experiments/data_mind_2_6_tptp95_pilot.py'
+      - 'src/data_atp/**'
+      - 'tests/test_breadcrumbs.py'
+  workflow_dispatch:
+    inputs:
+      target_seconds:
+        description: 'Total E examination budget in seconds'
+        required: false
+        default: '300'
+        type: string
+      heartbeat_seconds:
+        description: 'Local breadcrumb heartbeat interval'
+        required: false
+        default: '10'
+        type: string
+      checkpoint_seconds:
+        description: 'Local pause/checkpoint barrier interval'
+        required: false
+        default: '30'
+        type: string
+      remote_checkpoint_seconds:
+        description: 'Maximum seconds between Git-backed durable checkpoints'
+        required: false
+        default: '60'
+        type: string
+      resume_state_branch:
+        description: 'Optional prior run-state/dm211-<run_id> branch to resume'
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  TPTP_VERSION: '9.3.1'
+  TARGET: 'GRP619+1.p'
+  TARGET_SECONDS: ${{ github.event_name == 'workflow_dispatch' && inputs.target_seconds || '300' }}
+  HEARTBEAT_SECONDS: ${{ github.event_name == 'workflow_dispatch' && inputs.heartbeat_seconds || '10' }}
+  CHECKPOINT_SECONDS: ${{ github.event_name == 'workflow_dispatch' && inputs.checkpoint_seconds || '30' }}
+  DM211_REMOTE_CHECKPOINT_SECONDS: ${{ github.event_name == 'workflow_dispatch' && inputs.remote_checkpoint_seconds || '60' }}
+  DM211_STATE_BRANCH: run-state/dm211-${{ github.run_id }}
+  RESUME_STATE_BRANCH: ${{ github.event_name == 'workflow_dispatch' && inputs.resume_state_branch || '' }}
+  FROZEN_SNAPSHOT_COMMIT: '946ed4816dd0928f800165bef189df02f1560018'
+
+jobs:
+  dm211-durable-grp619:
+    name: dm211-grp619-durable-checkpoint-barriers
+    runs-on: ubuntu-24.04
+    timeout-minutes: 430
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install E and Python dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq eprover
+          E_DEB=eprover_3.5.1+ds-1_amd64.deb
+          E_URL="https://security.ubuntu.com/ubuntu/pool/universe/e/eprover/$E_DEB"
+          curl -fL --retry 5 --retry-delay 3 --output "$E_DEB" "$E_URL"
+          test -s "$E_DEB"
+          sudo dpkg -i "$E_DEB"
+          python -m pip install --disable-pip-version-check -q numpy
+          python -m pip install --disable-pip-version-check -e .
+          eprover --version | tee eprover-version.txt
+          grep -q '3.5.1' eprover-version.txt
+
+      - name: Run 2.11 breadcrumb/checkpoint tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest tests.test_breadcrumbs tests.test_checkpoint tests.test_event_log_persistence -v
+          python -m py_compile \
+            experiments/data_mind_2_11_tptp95_grp619.py \
+            experiments/data_mind_2_11_durable_grp619.py
+
+      - name: Restore and audit frozen 171/9 policy
+        shell: bash
+        run: |
+          set -euo pipefail
+          SNAP=training_snapshots/dm27_tptp95_proof_density_6h_001/metadata
+          mkdir -p frozen_policy
+          git show "$FROZEN_SNAPSHOT_COMMIT:$SNAP/tptp95_policy.json" > frozen_policy/tptp95_policy.json
+          git show "$FROZEN_SNAPSHOT_COMMIT:$SNAP/split_manifest.json" > frozen_policy/split_manifest.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('frozen_policy/tptp95_policy.json').read_text())
+          m=json.loads(Path('frozen_policy/split_manifest.json').read_text())
+          assert p['target']==m['target']=='GRP619+1.p'
+          assert m['training_count']==171 and m['holdout_count']==9
+          assert m['target_in_training'] is False
+          assert m['same_abstract_problem_variants_in_training'] is False
+          assert not any(x.startswith('GRP619') for x in m['training_files'])
+          print('FROZEN_SPLIT_AUDIT=VERIFIED')
+          PY
+
+      - name: Download official TPTP release
+        shell: bash
+        run: |
+          set -euo pipefail
+          ARCHIVE="TPTP-v${TPTP_VERSION}.tgz"
+          URL="https://tptp.org/TPTP/Distribution/${ARCHIVE}"
+          curl -fL --retry 5 --retry-delay 5 --connect-timeout 30 --output "$ARCHIVE" "$URL"
+          test -s "$ARCHIVE"
+          tar -xzf "$ARCHIVE" "TPTP-v${TPTP_VERSION}/Problems/GRP" "TPTP-v${TPTP_VERSION}/Axioms"
+          ROOT="$GITHUB_WORKSPACE/TPTP-v${TPTP_VERSION}"
+          test -f "$ROOT/Problems/GRP/$TARGET"
+          echo "TPTP_ROOT=$ROOT" >> "$GITHUB_ENV"
+
+      - name: 2.11 durable monitored adapter smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results/smoke
+          python -u experiments/data_mind_2_11_durable_grp619.py smoke \
+            --tptp-root "$TPTP_ROOT" \
+            --policy frozen_policy/tptp95_policy.json \
+            --manifest frozen_policy/split_manifest.json \
+            --seconds 15 \
+            --heartbeat-seconds 5 \
+            --checkpoint-seconds 10 \
+            --run-id "dm211-smoke-${GITHUB_RUN_ID}" \
+            --out results/smoke \
+            2>&1 | tee results/smoke/smoke.log
+
+      - name: Restore prior durable examination state when requested
+        if: ${{ env.RESUME_STATE_BRANCH != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$RESUME_STATE_BRANCH" =~ ^run-state/dm211-([0-9]+)$ ]]; then
+            echo "Invalid resume state branch: $RESUME_STATE_BRANCH" >&2
+            exit 2
+          fi
+          OLD_GITHUB_RUN_ID="${BASH_REMATCH[1]}"
+          git fetch origin "refs/heads/$RESUME_STATE_BRANCH:refs/remotes/origin/$RESUME_STATE_BRANCH"
+          git checkout "origin/$RESUME_STATE_BRANCH" -- results/examination/breadcrumbs
+          echo "DM211_EXAMINE_RUN_ID=dm211-examine-${OLD_GITHUB_RUN_ID}" >> "$GITHUB_ENV"
+          echo "DM211_RESUME_FLAG=--resume" >> "$GITHUB_ENV"
+
+      - name: Initialize fresh examination identity
+        if: ${{ env.RESUME_STATE_BRANCH == '' }}
+        shell: bash
+        run: |
+          echo "DM211_EXAMINE_RUN_ID=dm211-examine-${GITHUB_RUN_ID}" >> "$GITHUB_ENV"
+          echo "DM211_RESUME_FLAG=" >> "$GITHUB_ENV"
+
+      - name: 2.11 durable verifier-gated held-out examination
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results/examination
+          python -u experiments/data_mind_2_11_durable_grp619.py examine \
+            --tptp-root "$TPTP_ROOT" \
+            --policy frozen_policy/tptp95_policy.json \
+            --manifest frozen_policy/split_manifest.json \
+            --smoke-result results/smoke/smoke_result.json \
+            --total-seconds "$TARGET_SECONDS" \
+            --heartbeat-seconds "$HEARTBEAT_SECONDS" \
+            --checkpoint-seconds "$CHECKPOINT_SECONDS" \
+            --run-id "$DM211_EXAMINE_RUN_ID" \
+            $DM211_RESUME_FLAG \
+            --out results/examination \
+            2>&1 | tee results/examination/examination.log
+
+      - name: Publish 2.11 diagnostic summary
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json, os
+          from pathlib import Path
+          print('# DATA-MIND 2.11 durable GRP619 prototype')
+          print(f"\n- Durable state branch: `{os.environ.get('DM211_STATE_BRANCH')}`")
+          resume=os.environ.get('RESUME_STATE_BRANCH')
+          if resume:
+              print(f"- Resumed from: `{resume}`")
+          for label, path in [
+              ('Smoke', Path('results/smoke/smoke_result.json')),
+              ('Examination', Path('results/examination/result.json')),
+          ]:
+              print(f'\n## {label}')
+              if not path.exists():
+                  print('No result JSON was produced; inspect the durable state branch.')
+                  continue
+              r=json.loads(path.read_text())
+              print(f"- Status: **{r['status']}**")
+              print(f"- Breadcrumb chain verified: `{r.get('breadcrumb_chain_verified')}`")
+              for run in r.get('runs', []):
+                  print(
+                      f"- `{run.get('problem_form','?')}:{run.get('strategy')}`: "
+                      f"class=`{run.get('outcome_class')}`, rc=`{run.get('returncode')}`, "
+                      f"wall_timeout=`{run.get('wall_timed_out')}`, szs=`{run.get('szs_status')}`"
+                  )
+          PY
+
+      - name: Upload complete 2.11 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dm211-durable-grp619-${{ github.run_id }}
+          path: |
+            results/
+            frozen_policy/
+            eprover-version.txt
+          if-no-files-found: warn
+          retention-days: 90
