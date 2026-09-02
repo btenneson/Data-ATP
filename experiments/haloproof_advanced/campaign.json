@@ -1,0 +1,108 @@
+{
+  "schema_version": "0.4",
+  "campaign": "HaloProof Advanced Settlement Campaign",
+  "benchmark_model": {
+    "field": "H = R(t)",
+    "order": "eventual sign near 0+",
+    "halo": "I = {x in H : for every positive integer n, |x| < 1/n}",
+    "target": "I is equipollent to R",
+    "concrete_setmm_route": {
+      "real_field": "RRfld",
+      "polynomial_ring": "Poly1 ` RRfld",
+      "rational_function_field": "Frac ` ( Poly1 ` RRfld )",
+      "variable": "var1 ` RRfld",
+      "native_results_to_reuse": [
+        "refld: RRfld is a field",
+        "fldidom: every field is an integral domain",
+        "ply1idom: univariate polynomials over an integral domain form an integral domain",
+        "fracfld: the field of fractions of an integral domain is a field",
+        "fracf1: canonical embedding into the field of fractions",
+        "coe1, coe1f, coe1sfi: coefficient map and finite support machinery",
+        "deg1nn0cl, deg1ldg: a nonzero polynomial degree is in NN0 and its leading coefficient is nonzero",
+        "<<<: generic infinitesimal relation for ordered structures",
+        "sbth: Schroeder-Bernstein theorem"
+      ]
+    },
+    "known_reference_route": [
+      "R <=card I via r |-> r t",
+      "I <=card H via inclusion",
+      "H ~~ R via coding rational functions by finite real data",
+      "I <=card R by composition",
+      "I ~~ R by Schroeder-Bernstein"
+    ]
+  },
+  "development_gate": {
+    "required_before_blind_target_run": [
+      "exact frozen set.mm snapshot and SHA-256",
+      "exact conservative HaloProof order/halo extension and SHA-256",
+      "exact target label and parsed target statement",
+      "verified reference certificate built outside the blind search condition",
+      "independent verifier agreement on the reference certificate",
+      "nontrivial admissible index excluding target leakage and direct target restatements"
+    ]
+  },
+  "verified_development": {
+    "frozen_setmm_sha256": "1016D7EDB0508ABDE0FE240BB5243E588C5067F8CB10EE6E1CC5733FC05ACDB5",
+    "labels": {
+      "hprefld": "RRfld is a field",
+      "hpridom": "RRfld is an integral domain",
+      "hppolyidom": "Poly1(RRfld) is an integral domain",
+      "hpfracfield": "Frac(Poly1(RRfld)) is a field",
+      "hpcoe1map": "polynomial coefficient vector maps NN0 into the coefficient carrier",
+      "hpcoe1fsupp": "polynomial coefficient vector has finite support"
+    },
+    "current_candidate": {
+      "hpcoe1nzex": "a nonzero polynomial has a nonzero coefficient, witnessed by its degree"
+    },
+    "development_extension": "haloproof_order_halo.mm"
+  },
+  "foundation_obligations": [
+    "DONE: instantiate P = Poly1(RRfld) and prove P is an integral domain",
+    "DONE: instantiate H = Frac(P) and prove H is a field",
+    "DONE: coefficient vectors map NN0 into the real coefficient carrier",
+    "DONE: coefficient vectors have finite support",
+    "CANDIDATE: prove every nonzero polynomial has a nonzero coefficient",
+    "prove the nonzero coefficient-index class has a least element",
+    "define eventual-sign positivity/order from the least-degree nonzero coefficients",
+    "prove the order is independent of fraction representatives",
+    "prove eventual-sign relation is a strict total order",
+    "prove order is compatible with field addition and multiplication",
+    "package H as an ordered field",
+    "identify embedded t, prove positivity and infinitesimality",
+    "define the exact two-sided halo I",
+    "prove r |-> r t is one-to-one from R into I",
+    "prove H is equipollent to R via finite coefficient data",
+    "derive I <=card R and finish I ~~ R by Schroeder-Bernstein"
+  ],
+  "next_milestone": {
+    "gate_after_candidate_verification": "NONZERO_COEFFICIENT_VERIFIED_NEEDS_LEAST_INDEX",
+    "theorem_family": "ES1c-ES1e",
+    "goal": "Obtain the least nonzero coefficient exponent for every nonzero polynomial and define its sign near 0+",
+    "preferred_route": "Use deg1nn0cl and deg1ldg for nonemptiness, then well-ordering of NN0 for the least index"
+  },
+  "search_architecture": {
+    "certificate_authority": "Metamath verifier only",
+    "shared_bank_policy": "Only independently verified lemmas may enter the reusable bank",
+    "decomposition": "verified lemma campaign rather than one monolithic proof search",
+    "legal_first": true,
+    "quotient_state_canonicalization": true,
+    "subject_conditioned_density": true,
+    "settlement_compass_role": "mesoscopic premise/territory prioritization, not an oracle for the next inference",
+    "bounded_learned_intervention": true,
+    "conservative_fallback": "A proof-covering unguided share must remain enabled",
+    "reflective_control": "Level-2-style controller may adapt search allocation from observed search state; it may not assert theoremhood",
+    "persistence": "Atomic SHA-256 checkpoints, complete frontier state, exact expansion accounting, deterministic replay",
+    "final_verification": "Fresh-process independent verification of the exact frozen target certificate"
+  },
+  "outcomes": [
+    "VERIFIED_PROOF",
+    "VERIFIED_REFUTATION",
+    "BUDGET_EXHAUSTED_UNKNOWN",
+    "PROTOCOL_FAILURE"
+  ],
+  "notes": [
+    "The rational-function benchmark is distinct from the separate ultrapower/nonprincipal-ultrafilter formalization in ATP/hyperreal.mm.",
+    "The reference-proof construction phase is route-informed by design. The later blind benchmark must seal the reference proof and route-derived leakage.",
+    "No timeout, empty frontier, crash, or budget exhaustion is evidence of falsity or independence."
+  ]
+}
