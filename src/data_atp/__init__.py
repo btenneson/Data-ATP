@@ -1,6 +1,6 @@
 """Data-ATP executable interfaces."""
 
-DATA_MIND_ARCHITECTURE_VERSION = "2.10"
+DATA_MIND_ARCHITECTURE_VERSION = "2.11"
 
 from .autonomy import (
     AccountableAutonomyController,
@@ -11,6 +11,7 @@ from .autonomy import (
     Evidence,
     ExceptionPolicy,
 )
+from .breadcrumbs import BreadcrumbManager, BreadcrumbReceipt
 from .checkpoint import (
     CHECKPOINT_SCHEMA_VERSION,
     CheckpointError,
@@ -58,6 +59,8 @@ __all__ = [
     "AuthorityLevel",
     "BankItem",
     "BankView",
+    "BreadcrumbManager",
+    "BreadcrumbReceipt",
     "CHECKPOINT_SCHEMA_VERSION",
     "CheckpointError",
     "CheckpointManager",
