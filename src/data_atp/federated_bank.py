@@ -85,7 +85,7 @@ class FederatedBank:
         axiom_to_rules: TradeFn | None = None,
         rule_to_axioms: TradeFn | None = None,
     ) -> None:
-        self.core = core or SharedBank(
+        self.core = core if core is not None else SharedBank(
             axiom_to_rules=axiom_to_rules,
             rule_to_axioms=rule_to_axioms,
         )
