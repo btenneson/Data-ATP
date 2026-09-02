@@ -1,0 +1,93 @@
+{
+  "checkpoint_sequence": 9,
+  "created_utc": "2026-09-02T19:03:07.931368+00:00",
+  "metadata": {
+    "breadcrumb_kind": "PRE_EXTERNAL_PROVER",
+    "breadcrumb_transaction_digest": "f3bd117874c611f0b27dd79ec9129388b794c6faa1252b3c47b0d957382d4c83",
+    "breadcrumb_transaction_sequence": 30,
+    "problem": "/home/runner/work/Data-ATP/Data-ATP/TPTP-v9.3.1/Problems/GRP/GRP619+1.p",
+    "strategy": "default"
+  },
+  "run_id": "dm211-examine-33670285447",
+  "schema_version": "0.1",
+  "snapshot": {
+    "active_attempt": {
+      "allocated_cpu_seconds": 72,
+      "command": [
+        "eprover",
+        "--tptp3-format",
+        "--proof-object",
+        "--cpu-limit=72",
+        "/home/runner/work/Data-ATP/Data-ATP/TPTP-v9.3.1/Problems/GRP/GRP619+1.p"
+      ],
+      "log": "e_original_default.log",
+      "problem": "/home/runner/work/Data-ATP/Data-ATP/TPTP-v9.3.1/Problems/GRP/GRP619+1.p",
+      "strategy": "default"
+    },
+    "architecture_version": "2.11",
+    "attempt_index": 2,
+    "candidate_keys": [
+      "reordered:default",
+      "reordered:sine_auto",
+      "original:default",
+      "original:sine_auto"
+    ],
+    "completed_runs": [
+      {
+        "abnormal_termination": false,
+        "adapter_error": null,
+        "allocated_seconds": 75,
+        "command": [
+          "eprover",
+          "--tptp3-format",
+          "--proof-object",
+          "--cpu-limit=75",
+          "results/examination/GRP619+1.p.dm210-reordered.p"
+        ],
+        "elapsed_seconds": 76.934210436,
+        "log": "e_reordered_default.log",
+        "outcome_class": "RESOURCE_LIMIT",
+        "pid": 2869,
+        "problem_form": "reordered",
+        "proof_marker_present": false,
+        "returncode": 8,
+        "sentinel_decision": "allow_internal",
+        "strategy": "default",
+        "szs_status": "ResourceOut",
+        "verifier_accepted": false,
+        "wall_timed_out": false
+      },
+      {
+        "abnormal_termination": false,
+        "adapter_error": null,
+        "allocated_seconds": 74,
+        "command": [
+          "eprover",
+          "--sine=Auto",
+          "--tptp3-format",
+          "--proof-object",
+          "--cpu-limit=74",
+          "results/examination/GRP619+1.p.dm210-reordered.p"
+        ],
+        "elapsed_seconds": 75.97768804000003,
+        "log": "e_reordered_sine_auto.log",
+        "outcome_class": "RESOURCE_LIMIT",
+        "pid": 2912,
+        "problem_form": "reordered",
+        "proof_marker_present": false,
+        "returncode": 8,
+        "sentinel_decision": "allow_internal",
+        "strategy": "sine_auto",
+        "szs_status": "ResourceOut",
+        "verifier_accepted": false,
+        "wall_timed_out": false
+      }
+    ],
+    "next_attempt_index": 2,
+    "phase": "pre_external_prover",
+    "recovery_action": "restart_current_attempt",
+    "spent_seconds": 156.115523527,
+    "target": "GRP619+1.p",
+    "total_budget_seconds": 300
+  }
+}
