@@ -38,6 +38,7 @@ class EventType(StrEnum):
     VERIFIER_ACCEPTED = "VerifierAccepted"
     VERIFIER_REJECTED = "VerifierRejected"
     SELF_REPORT_FILED = "SelfReportFiled"
+    BREADCRUMB_RECORDED = "BreadcrumbRecorded"
     CHECKPOINT_SAVED = "CheckpointSaved"
     CHECKPOINT_RESTORED = "CheckpointRestored"
     CHECKPOINT_REJECTED = "CheckpointRejected"
