@@ -23,7 +23,7 @@ from .coverage import (
     nominal_stage_length,
 )
 from .engine import AccountableSearchEngine, RunOutcome
-from .events import EventType, Transaction, TransactionLog
+from .events import EventType, SecurityFlag, Transaction, TransactionLog
 from .future_bank import FutureBank, FutureBankView, FutureItem
 from .picard import PicardCommand, PicardController, PicardStatus, RunControlState
 from .pric_bank import AgentProposal, AgentStepResult, FutureProposal, PRICBankCoordinator
@@ -74,6 +74,7 @@ __all__ = [
     "RunOutcome",
     "SecurityAssessment",
     "SecurityClass",
+    "SecurityFlag",
     "SecurityGovernor",
     "SentinelDecision",
     "SentinelPolicy",
