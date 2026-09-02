@@ -10,6 +10,12 @@ on:
       - 'experiments/data_mind_2_6_tptp95_pilot.py'
       - 'src/data_atp/**'
   workflow_dispatch:
+    inputs:
+      target_seconds:
+        description: 'Total E examination budget in seconds'
+        required: false
+        default: '300'
+        type: string
 
 permissions:
   contents: read
@@ -18,12 +24,12 @@ permissions:
 env:
   TPTP_VERSION: '9.3.1'
   TARGET: 'GRP619+1.p'
-  TARGET_SECONDS: '21600'
+  TARGET_SECONDS: ${{ github.event_name == 'workflow_dispatch' && inputs.target_seconds || '300' }}
   FROZEN_SNAPSHOT_COMMIT: '946ed4816dd0928f800165bef189df02f1560018'
 
 jobs:
   heldout-settlement:
-    name: dm210-grp619-heldout-verifier-gated-6h
+    name: dm210-grp619-heldout-verifier-gated
     runs-on: ubuntu-24.04
     timeout-minutes: 430
     steps:
