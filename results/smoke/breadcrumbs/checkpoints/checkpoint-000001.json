@@ -1,0 +1,50 @@
+{
+  "checkpoint_sequence": 1,
+  "created_utc": "2026-09-02T19:29:00.974517+00:00",
+  "metadata": {
+    "breadcrumb_kind": "CHECKPOINT_BARRIER",
+    "breadcrumb_transaction_digest": "1c3090842403c9d682f958da0f30ce2974ff37b67769ec11c7bf8259f8922c95",
+    "breadcrumb_transaction_sequence": 4,
+    "peak_rss_kib": 990012,
+    "pid": 2899,
+    "process_paused": true,
+    "rss_kib": 990012
+  },
+  "run_id": "dm211-smoke-33673419529",
+  "schema_version": "0.1",
+  "snapshot": {
+    "active_attempt": {
+      "allocated_cpu_seconds": 15,
+      "command": [
+        "eprover",
+        "--tptp3-format",
+        "--proof-object",
+        "--cpu-limit=15",
+        "/home/runner/work/Data-ATP/Data-ATP/TPTP-v9.3.1/Problems/GRP/GRP619+1.p"
+      ],
+      "elapsed_seconds": 10.150070776000007,
+      "log": "smoke_original_default.log",
+      "log_bytes": 618496,
+      "peak_rss_kib": 990012,
+      "pid": 2899,
+      "problem": "/home/runner/work/Data-ATP/Data-ATP/TPTP-v9.3.1/Problems/GRP/GRP619+1.p",
+      "rss_kib": 990012,
+      "strategy": "default"
+    },
+    "architecture_version": "2.11",
+    "attempt_index": 0,
+    "candidate_keys": [
+      "original:default",
+      "original:sine_auto",
+      "reordered:default",
+      "reordered:sine_auto"
+    ],
+    "completed_runs": [],
+    "next_attempt_index": 0,
+    "phase": "external_prover_running",
+    "recovery_action": "restart_current_attempt",
+    "spent_seconds": 10.150070776000007,
+    "target": "GRP619+1.p",
+    "total_budget_seconds": 60
+  }
+}
