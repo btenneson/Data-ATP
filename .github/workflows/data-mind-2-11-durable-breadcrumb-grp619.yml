@@ -17,7 +17,7 @@ on:
       target_seconds:
         description: 'Total E examination budget in seconds'
         required: false
-        default: '300'
+        default: '1800'
         type: string
       heartbeat_seconds:
         description: 'Local breadcrumb heartbeat interval'
@@ -47,7 +47,7 @@ permissions:
 env:
   TPTP_VERSION: '9.3.1'
   TARGET: 'GRP619+1.p'
-  TARGET_SECONDS: ${{ github.event_name == 'workflow_dispatch' && inputs.target_seconds || '300' }}
+  TARGET_SECONDS: ${{ github.event_name == 'workflow_dispatch' && inputs.target_seconds || '1800' }}
   HEARTBEAT_SECONDS: ${{ github.event_name == 'workflow_dispatch' && inputs.heartbeat_seconds || '10' }}
   CHECKPOINT_SECONDS: ${{ github.event_name == 'workflow_dispatch' && inputs.checkpoint_seconds || '30' }}
   DM211_REMOTE_CHECKPOINT_SECONDS: ${{ github.event_name == 'workflow_dispatch' && inputs.remote_checkpoint_seconds || '60' }}
