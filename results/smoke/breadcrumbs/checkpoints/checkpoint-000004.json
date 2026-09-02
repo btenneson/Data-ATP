@@ -1,0 +1,76 @@
+{
+  "checkpoint_sequence": 4,
+  "created_utc": "2026-09-02T19:29:18.876282+00:00",
+  "metadata": {
+    "breadcrumb_kind": "CHECKPOINT_BARRIER",
+    "breadcrumb_transaction_digest": "a18fc3b783e7d227305fc640afddf44678cba056b5d9cda583ab37e94fa164ec",
+    "breadcrumb_transaction_sequence": 13,
+    "peak_rss_kib": 995980,
+    "pid": 2929,
+    "process_paused": true,
+    "rss_kib": 995980
+  },
+  "run_id": "dm211-smoke-33673419529",
+  "schema_version": "0.1",
+  "snapshot": {
+    "active_attempt": {
+      "allocated_cpu_seconds": 15,
+      "command": [
+        "eprover",
+        "--sine=Auto",
+        "--tptp3-format",
+        "--proof-object",
+        "--cpu-limit=15",
+        "/home/runner/work/Data-ATP/Data-ATP/TPTP-v9.3.1/Problems/GRP/GRP619+1.p"
+      ],
+      "elapsed_seconds": 10.154009643999984,
+      "log": "smoke_original_sine_auto.log",
+      "log_bytes": 618496,
+      "peak_rss_kib": 995980,
+      "pid": 2929,
+      "problem": "/home/runner/work/Data-ATP/Data-ATP/TPTP-v9.3.1/Problems/GRP/GRP619+1.p",
+      "rss_kib": 995980,
+      "strategy": "sine_auto"
+    },
+    "architecture_version": "2.11",
+    "attempt_index": 1,
+    "candidate_keys": [
+      "original:default",
+      "original:sine_auto",
+      "reordered:default",
+      "reordered:sine_auto"
+    ],
+    "completed_runs": [
+      {
+        "abnormal_termination": false,
+        "adapter_error": null,
+        "allocated_seconds": 15,
+        "command": [
+          "eprover",
+          "--tptp3-format",
+          "--proof-object",
+          "--cpu-limit=15",
+          "/home/runner/work/Data-ATP/Data-ATP/TPTP-v9.3.1/Problems/GRP/GRP619+1.p"
+        ],
+        "elapsed_seconds": 16.558941027000003,
+        "log": "smoke_original_default.log",
+        "outcome_class": "RESOURCE_LIMIT",
+        "pid": 2899,
+        "problem_form": "original",
+        "proof_marker_present": false,
+        "returncode": 8,
+        "sentinel_decision": "allow_internal",
+        "strategy": "default",
+        "szs_status": "ResourceOut",
+        "verifier_accepted": false,
+        "wall_timed_out": false
+      }
+    ],
+    "next_attempt_index": 1,
+    "phase": "external_prover_running",
+    "recovery_action": "restart_current_attempt",
+    "spent_seconds": 26.712950670999987,
+    "target": "GRP619+1.p",
+    "total_budget_seconds": 60
+  }
+}
