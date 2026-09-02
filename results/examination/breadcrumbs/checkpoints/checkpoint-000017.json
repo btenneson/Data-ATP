@@ -1,0 +1,134 @@
+{
+  "checkpoint_sequence": 17,
+  "created_utc": "2026-09-02T19:35:42.564686+00:00",
+  "metadata": {
+    "available_fraction": 0.23445929422824216,
+    "breadcrumb_kind": "SENTINEL_RESOURCE_STOP",
+    "breadcrumb_transaction_digest": "349817c43bf9555494a1e691f62595d02dd4987a1d9772863165554246307f63",
+    "breadcrumb_transaction_sequence": 61,
+    "max_rss_fraction": 0.65,
+    "mem_available_kib": 3838908,
+    "mem_total_kib": 16373452,
+    "min_available_fraction": 0.2,
+    "pid": 3217,
+    "process_paused": true,
+    "reasons": [
+      "prover_rss_fraction"
+    ],
+    "rss_fraction": 0.7024683615892361,
+    "rss_kib": 11501832
+  },
+  "run_id": "dm211-examine-33673419529",
+  "schema_version": "0.1",
+  "snapshot": {
+    "active_attempt": {
+      "allocated_cpu_seconds": 786,
+      "command": [
+        "eprover",
+        "--tptp3-format",
+        "--proof-object",
+        "--cpu-limit=786",
+        "/home/runner/work/Data-ATP/Data-ATP/TPTP-v9.3.1/Problems/GRP/GRP619+1.p"
+      ],
+      "elapsed_seconds": 110.19587722400001,
+      "log": "e_original_default.log",
+      "log_bytes": 2052096,
+      "peak_rss_kib": 11501832,
+      "pid": 3217,
+      "problem": "/home/runner/work/Data-ATP/Data-ATP/TPTP-v9.3.1/Problems/GRP/GRP619+1.p",
+      "rss_kib": 11501832,
+      "strategy": "default"
+    },
+    "architecture_version": "2.11",
+    "attempt_index": 2,
+    "candidate_keys": [
+      "reordered:default",
+      "reordered:sine_auto",
+      "original:default",
+      "original:sine_auto"
+    ],
+    "completed_runs": [
+      {
+        "abnormal_termination": false,
+        "adapter_error": null,
+        "allocated_seconds": 450,
+        "command": [
+          "eprover",
+          "--tptp3-format",
+          "--proof-object",
+          "--cpu-limit=450",
+          "results/examination/GRP619+1.p.dm210-reordered.p"
+        ],
+        "elapsed_seconds": 112.299666823,
+        "log": "e_reordered_default.log",
+        "outcome_class": "SENTINEL_RESOURCE_STOP",
+        "pid": 3043,
+        "problem_form": "reordered",
+        "proof_marker_present": false,
+        "resource_guard_reason": {
+          "available_fraction": 0.2245322489112253,
+          "max_rss_fraction": 0.65,
+          "mem_available_kib": 3676368,
+          "mem_total_kib": 16373452,
+          "min_available_fraction": 0.2,
+          "reasons": [
+            "prover_rss_fraction"
+          ],
+          "rss_fraction": 0.7153782843104801,
+          "rss_kib": 11713212
+        },
+        "resource_guard_triggered": true,
+        "returncode": -15,
+        "sentinel_decision": "resource_stop",
+        "strategy": "default",
+        "szs_status": null,
+        "verifier_accepted": false,
+        "wall_timed_out": false
+      },
+      {
+        "abnormal_termination": false,
+        "adapter_error": null,
+        "allocated_seconds": 562,
+        "command": [
+          "eprover",
+          "--sine=Auto",
+          "--tptp3-format",
+          "--proof-object",
+          "--cpu-limit=562",
+          "results/examination/GRP619+1.p.dm210-reordered.p"
+        ],
+        "elapsed_seconds": 112.26253735300003,
+        "log": "e_reordered_sine_auto.log",
+        "outcome_class": "SENTINEL_RESOURCE_STOP",
+        "pid": 3144,
+        "problem_form": "reordered",
+        "proof_marker_present": false,
+        "resource_guard_reason": {
+          "available_fraction": 0.23704250026200951,
+          "max_rss_fraction": 0.65,
+          "mem_available_kib": 3881204,
+          "mem_total_kib": 16373452,
+          "min_available_fraction": 0.2,
+          "reasons": [
+            "prover_rss_fraction"
+          ],
+          "rss_fraction": 0.7001897950413877,
+          "rss_kib": 11464524
+        },
+        "resource_guard_triggered": true,
+        "returncode": -15,
+        "sentinel_decision": "resource_stop",
+        "strategy": "sine_auto",
+        "szs_status": null,
+        "verifier_accepted": false,
+        "wall_timed_out": false
+      }
+    ],
+    "next_attempt_index": 2,
+    "phase": "sentinel_resource_stop",
+    "recovery_action": "continue_from_next_attempt",
+    "spent_seconds": 337.507770219,
+    "target": "GRP619+1.p",
+    "total_budget_seconds": 1800
+  }
+}
