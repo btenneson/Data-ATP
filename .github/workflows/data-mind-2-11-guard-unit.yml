@@ -1,0 +1,68 @@
+name: DATA-MIND 2.11 — guard logic unit check
+
+on:
+  push:
+    branches: [experiment/dm211-durable-breadcrumbs]
+    paths:
+      - '.github/workflows/data-mind-2-11-guard-unit.yml'
+      - 'experiments/data_mind_2_11_durable_grp619.py'
+      - 'experiments/data_mind_2_11_tptp95_grp619.py'
+      - 'src/data_atp/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  guard-unit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install package dependencies
+        run: |
+          python -m pip install --disable-pip-version-check -q numpy
+          python -m pip install --disable-pip-version-check -q -e .
+      - name: Verify 2.11 SZS and Sentinel guard logic
+        env:
+          PYTHONPATH: experiments
+        run: |
+          python - <<'PY'
+          import data_mind_2_11_durable_grp619 as d
+
+          m = d.ROBUST_SZS_RE.search('%% SZS status ResourceOut')
+          assert m is not None and m.group(1) == 'ResourceOut'
+          m = d.ROBUST_SZS_RE.search('% SZS status Theorem')
+          assert m is not None and m.group(1) == 'Theorem'
+
+          healthy = d._resource_guard_reason(
+              rss_kib=400, mem_total_kib=1000, mem_available_kib=500,
+              max_rss_fraction=0.65, min_available_fraction=0.20,
+          )
+          assert healthy is None
+
+          rss_stop = d._resource_guard_reason(
+              rss_kib=700, mem_total_kib=1000, mem_available_kib=500,
+              max_rss_fraction=0.65, min_available_fraction=0.20,
+          )
+          assert rss_stop is not None
+          assert 'prover_rss_fraction' in rss_stop['reasons']
+
+          host_stop = d._resource_guard_reason(
+              rss_kib=300, mem_total_kib=1000, mem_available_kib=150,
+              max_rss_fraction=0.65, min_available_fraction=0.20,
+          )
+          assert host_stop is not None
+          assert 'host_mem_available_fraction' in host_stop['reasons']
+
+          d._RESOURCE_STOP_REQUESTED = True
+          assert d._guarded_classify() == 'SENTINEL_RESOURCE_STOP'
+          assert d._guarded_overall_status(
+              [{'outcome_class': 'SENTINEL_RESOURCE_STOP'}], False
+          ) == 'BOUNDED_UNKNOWN'
+          d._RESOURCE_STOP_REQUESTED = False
+
+          print('DM211_GUARD_LOGIC=VERIFIED')
+          PY
