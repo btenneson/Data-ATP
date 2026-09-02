@@ -1,0 +1,30 @@
+{
+  "checkpoint_sequence": 0,
+  "created_utc": "2026-09-02T18:48:23.528532+00:00",
+  "metadata": {
+    "breadcrumb_kind": "RUN_STARTED",
+    "breadcrumb_transaction_digest": "0662ced6594c67800dfb57cc05d12ef36b8181970450ea018ae47c149f67b777",
+    "breadcrumb_transaction_sequence": 0,
+    "target": "GRP619+1.p"
+  },
+  "run_id": "dm211-examine-33669207883",
+  "schema_version": "0.1",
+  "snapshot": {
+    "active_attempt": null,
+    "architecture_version": "2.11",
+    "attempt_index": null,
+    "candidate_keys": [
+      "reordered:default",
+      "reordered:sine_auto",
+      "original:default",
+      "original:sine_auto"
+    ],
+    "completed_runs": [],
+    "next_attempt_index": 0,
+    "phase": "started",
+    "recovery_action": "continue_from_next_attempt",
+    "spent_seconds": 0.0,
+    "target": "GRP619+1.p",
+    "total_budget_seconds": 300
+  }
+}
