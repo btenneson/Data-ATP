@@ -44,6 +44,7 @@ class ActionContext:
     target_scope: str = "internal"
     security_class: SecurityClass = SecurityClass.BENIGN
     formal_verified: bool = False
+    requires_formal_verification: bool = True
     human_approved: bool = False
     metadata: Mapping[str, object] = field(default_factory=dict)
 
@@ -57,12 +58,7 @@ class SecurityAssessment:
 
 @dataclass(frozen=True, slots=True)
 class SentinelPolicy:
-    """Conservative defaults for DATA-MIND 2.9.
-
-    Capability names are intentionally generic.  Adapters may use narrower
-    names, but anything capable of changing or contacting an external system
-    should map to ``external_write``, ``network``, or ``code_execution``.
-    """
+    """Conservative defaults for DATA-MIND 2.9."""
 
     internal_risk_threshold: float = 0.45
     export_risk_threshold: float = 0.25
@@ -120,7 +116,8 @@ class SecurityGovernor:
         reasons: list[str] = []
         caps = set(context.capabilities)
 
-        if not context.formal_verified:
+        verification_missing = context.requires_formal_verification and not context.formal_verified
+        if verification_missing:
             reasons.append("formal verification missing")
 
         for pair in self.policy.forbidden_pairs:
@@ -160,9 +157,7 @@ class SecurityGovernor:
 
         risk = min(1.0, self._CLASS_RISK[context.security_class] + resource_risk + capability_risk + external_risk)
 
-        if context.security_class is SecurityClass.HIGH_RISK or (
-            external_risk and capability_risk
-        ):
+        if context.security_class is SecurityClass.HIGH_RISK or (external_risk and capability_risk):
             if not context.human_approved:
                 assessment = SecurityAssessment(
                     SentinelDecision.REQUIRE_HUMAN,
@@ -181,12 +176,10 @@ class SecurityGovernor:
             self.quarantine.deposit(context, assessment)
             return assessment
 
-        if not context.formal_verified:
-            return SecurityAssessment(
-                SentinelDecision.QUARANTINE,
-                risk,
-                tuple(reasons),
-            )
+        if verification_missing:
+            assessment = SecurityAssessment(SentinelDecision.QUARANTINE, risk, tuple(reasons))
+            self.quarantine.deposit(context, assessment)
+            return assessment
 
         if context.target_scope == "internal":
             return SecurityAssessment(SentinelDecision.ALLOW_INTERNAL, risk, tuple(reasons))
