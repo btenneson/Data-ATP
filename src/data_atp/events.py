@@ -20,6 +20,8 @@ class EventType(StrEnum):
     DIRECTIVE_RECEIVED = "DirectiveReceived"
     ACTION_PROPOSED = "ActionProposed"
     LEGALITY_CHECKED = "LegalityChecked"
+    SENTINEL_ASSESSED = "SentinelAssessed"
+    SENTINEL_BLOCKED = "SentinelBlocked"
     LOCAL_EVIDENCE_DETECTED = "LocalEvidenceDetected"
     STRATEGY_OVERRIDE_PROPOSED = "StrategyOverrideProposed"
     STRATEGY_OVERRIDE_EXECUTED = "StrategyOverrideExecuted"
@@ -88,112 +90,52 @@ class TransactionLog:
             "timestamp_utc": timestamp_utc,
             "previous_hash": previous_hash,
         }
-        raw = json.dumps(record, sort_keys=True, separators=(",", ":"), default=str)
-        return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+        encoded = json.dumps(record, sort_keys=True, separators=(",", ":"), default=str).encode("utf-8")
+        return hashlib.sha256(encoded).hexdigest()
 
-    @staticmethod
-    def _record_dict(tx: Transaction) -> dict[str, Any]:
-        return {
-            "sequence": tx.sequence,
-            "event_type": str(tx.event_type),
-            "payload": tx.payload,
-            "timestamp_utc": tx.timestamp_utc,
-            "previous_hash": tx.previous_hash,
-            "digest": tx.digest,
-        }
+    def append(self, event_type: EventType, payload: dict[str, Any]) -> Transaction:
+        sequence = len(self._items) + 1
+        timestamp_utc = datetime.now(timezone.utc).isoformat()
+        previous_hash = self.last_digest
+        digest = self._digest(sequence, event_type, payload, timestamp_utc, previous_hash)
+        item = Transaction(sequence, event_type, payload, timestamp_utc, previous_hash, digest)
+        if self._path is not None:
+            record = asdict(item)
+            record["event_type"] = str(item.event_type)
+            line = json.dumps(record, sort_keys=True, default=str) + "\n"
+            with self._path.open("a", encoding="utf-8") as handle:
+                handle.write(line)
+                handle.flush()
+                os.fsync(handle.fileno())
+        self._items.append(item)
+        return item
+
+    def items(self) -> tuple[Transaction, ...]:
+        return tuple(self._items)
+
+    def extend(self, events: Iterable[tuple[EventType, dict[str, Any]]]) -> None:
+        for event_type, payload in events:
+            self.append(event_type, payload)
 
     def _load_existing(self) -> None:
         assert self._path is not None
-        previous = "GENESIS"
-        try:
-            with self._path.open("r", encoding="utf-8") as handle:
-                for expected_sequence, line in enumerate(handle):
-                    if not line.strip():
-                        raise ValueError(f"blank transaction-log line at {expected_sequence + 1}")
-                    record = json.loads(line)
-                    tx = Transaction(
-                        sequence=int(record["sequence"]),
-                        event_type=EventType(record["event_type"]),
-                        payload=dict(record["payload"]),
-                        timestamp_utc=str(record["timestamp_utc"]),
-                        previous_hash=str(record["previous_hash"]),
-                        digest=str(record["digest"]),
-                    )
-                    if tx.sequence != expected_sequence:
-                        raise ValueError("transaction sequence is not contiguous")
-                    if tx.previous_hash != previous:
-                        raise ValueError("transaction previous_hash chain is broken")
-                    expected_digest = self._digest(
-                        tx.sequence,
-                        tx.event_type,
-                        tx.payload,
-                        tx.timestamp_utc,
-                        tx.previous_hash,
-                    )
-                    if tx.digest != expected_digest:
-                        raise ValueError("transaction digest verification failed")
-                    self._items.append(tx)
-                    previous = tx.digest
-        except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
-            self._items.clear()
-            raise ValueError(f"cannot load trusted transaction log {self._path}: {exc}") from exc
-
-    def _persist(self, tx: Transaction) -> None:
-        if self._path is None:
-            return
-        line = json.dumps(
-            self._record_dict(tx),
-            sort_keys=True,
-            separators=(",", ":"),
-            ensure_ascii=False,
-            default=str,
-        ) + "\n"
-        with self._path.open("a", encoding="utf-8", newline="\n") as handle:
-            handle.write(line)
-            handle.flush()
-            os.fsync(handle.fileno())
-
-    def append(self, event_type: EventType, payload: dict[str, Any]) -> Transaction:
-        sequence = len(self._items)
-        timestamp = datetime.now(timezone.utc).isoformat()
-        previous_hash = self.last_digest
-        digest = self._digest(sequence, event_type, payload, timestamp, previous_hash)
-        tx = Transaction(
-            sequence=sequence,
-            event_type=event_type,
-            payload=dict(payload),
-            timestamp_utc=timestamp,
-            previous_hash=previous_hash,
-            digest=digest,
-        )
-        self._persist(tx)
-        self._items.append(tx)
-        return tx
-
-    def verify(self) -> bool:
-        previous = "GENESIS"
-        for expected_sequence, tx in enumerate(self._items):
-            if tx.sequence != expected_sequence or tx.previous_hash != previous:
-                return False
-            expected = self._digest(
-                tx.sequence,
-                tx.event_type,
-                tx.payload,
-                tx.timestamp_utc,
-                tx.previous_hash,
-            )
-            if expected != tx.digest:
-                return False
-            previous = tx.digest
-        return True
-
-    def events(self, event_type: EventType | None = None) -> Iterable[Transaction]:
-        if event_type is None:
-            return tuple(self._items)
-        return tuple(tx for tx in self._items if tx.event_type == event_type)
-
-    def to_json(self) -> str:
-        return json.dumps([asdict(tx) for tx in self._items], indent=2, default=str)
-
-    def __len__(self) -> int:
-        return len(self._items)
+        previous_hash = "GENESIS"
+        loaded: list[Transaction] = []
+        with self._path.open("r", encoding="utf-8") as handle:
+            for expected_sequence, line in enumerate(handle, start=1):
+                raw = json.loads(line)
+                event_type = EventType(raw["event_type"])
+                payload = raw["payload"]
+                timestamp_utc = raw["timestamp_utc"]
+                sequence = int(raw["sequence"])
+                if sequence != expected_sequence:
+                    raise ValueError("transaction sequence mismatch")
+                if raw["previous_hash"] != previous_hash:
+                    raise ValueError("transaction previous-hash mismatch")
+                digest = self._digest(sequence, event_type, payload, timestamp_utc, previous_hash)
+                if digest != raw["digest"]:
+                    raise ValueError("transaction digest mismatch")
+                item = Transaction(sequence, event_type, payload, timestamp_utc, previous_hash, digest)
+                loaded.append(item)
+                previous_hash = digest
+        self._items = loaded
