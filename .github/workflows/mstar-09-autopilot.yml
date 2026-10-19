@@ -1,0 +1,40 @@
+name: Mstar 0.9 Autopilot (public standard runner)
+
+on:
+  push:
+    paths:
+      - 'research/mstar_0_9/**'
+      - '.github/workflows/mstar-09-autopilot.yml'
+  pull_request:
+    paths:
+      - 'research/mstar_0_9/**'
+      - '.github/workflows/mstar-09-autopilot.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mstar-09-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frozen-baseline-and-candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run Mstar full automated regression and verification
+        run: python research/mstar_0_9/autopilot.py --mode full --output "$RUNNER_TEMP/mstar09-reports"
+      - name: Show report in job log (no paid artifact retention)
+        if: always()
+        shell: bash
+        run: |
+          if test -f "$RUNNER_TEMP/mstar09-reports/AUTOPILOT_REPORT.md"; then
+            cat "$RUNNER_TEMP/mstar09-reports/AUTOPILOT_REPORT.md"
+          else
+            echo 'Autopilot failed before producing its report.'
+          fi

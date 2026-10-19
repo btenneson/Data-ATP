@@ -1,0 +1,58 @@
+{
+  "database_digest": null,
+  "format": "MSTAR-0.8-DEV",
+  "guide_error": null,
+  "preserved_v07": true,
+  "problem_digest": "291f0289dacf2d0f6c90102bfe15ec1832d6b59a159abaefac8146cf9d670116",
+  "proof_bytes": 273,
+  "receipt": {
+    "kind": "resolution-unsat",
+    "steps": [
+      {
+        "left": 1,
+        "pivot": 2,
+        "resolvent": [
+          1
+        ],
+        "right": 0
+      },
+      {
+        "left": 2,
+        "pivot": 1,
+        "resolvent": [
+          2
+        ],
+        "right": 0
+      },
+      {
+        "left": 3,
+        "pivot": 1,
+        "resolvent": [
+          -2
+        ],
+        "right": 1
+      },
+      {
+        "left": 3,
+        "pivot": 2,
+        "resolvent": [
+          -1
+        ],
+        "right": 2
+      },
+      {
+        "left": 6,
+        "pivot": 2,
+        "resolvent": [],
+        "right": 5
+      }
+    ]
+  },
+  "reserve_attempts": 0,
+  "status": "UNSAT",
+  "system": "sat-cnf",
+  "tick_attempts": 1,
+  "total_measured_work_units": 483,
+  "wall_seconds": 0.00015,
+  "work_budget": 100000
+}
