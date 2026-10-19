@@ -1,0 +1,22 @@
+{
+  "database_digest": "de66abfd5b1cbff2c3396fa3d1998bf9fb69c62eb2752c55dadd5798640a1867",
+  "format": "MSTAR-0.8-DEV",
+  "guide_error": null,
+  "preserved_v07": true,
+  "problem_digest": "1cac8f5756955a21496e9d8a290042d65a3329799c013c40e76f207d26c8b500",
+  "proof_bytes": 44,
+  "receipt": {
+    "kind": "metamath-rpn",
+    "labels": [
+      "tt",
+      "a2"
+    ]
+  },
+  "reserve_attempts": 0,
+  "status": "PROVED",
+  "system": "metamath",
+  "tick_attempts": 1,
+  "total_measured_work_units": 133,
+  "wall_seconds": 8.5e-05,
+  "work_budget": 100000
+}

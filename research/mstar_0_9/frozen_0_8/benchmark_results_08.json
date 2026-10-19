@@ -1,0 +1,91 @@
+{
+  "family": "unit-CNF all positive literals; false-first assignment baseline",
+  "baseline": "brute-force truth assignments, lexicographic false before true",
+  "warning": "Both M* and standard unit propagation solve this family in linear unit-cost clause/literal operations; no relative advantage against competent SAT solvers. JSON byte costs not linear in n due to index lengths.",
+  "rows": [
+    {
+      "n": 4,
+      "encoded_input_bytes": 70,
+      "blind_candidates": 16,
+      "blind_literal_scans": 30,
+      "blind_wall_seconds": 4.3e-05,
+      "mstar_08_meter_work": 142,
+      "mstar_wall_seconds": 0.000126,
+      "mstar_certificate_verify_literal_scans": 4,
+      "mstar_proof_bytes": 55,
+      "status": "SAT"
+    },
+    {
+      "n": 6,
+      "encoded_input_bytes": 80,
+      "blind_candidates": 64,
+      "blind_literal_scans": 126,
+      "blind_wall_seconds": 5.1e-05,
+      "mstar_08_meter_work": 172,
+      "mstar_wall_seconds": 4.2e-05,
+      "mstar_certificate_verify_literal_scans": 6,
+      "mstar_proof_bytes": 65,
+      "status": "SAT"
+    },
+    {
+      "n": 8,
+      "encoded_input_bytes": 90,
+      "blind_candidates": 256,
+      "blind_literal_scans": 510,
+      "blind_wall_seconds": 0.000214,
+      "mstar_08_meter_work": 202,
+      "mstar_wall_seconds": 3.9e-05,
+      "mstar_certificate_verify_literal_scans": 8,
+      "mstar_proof_bytes": 75,
+      "status": "SAT"
+    },
+    {
+      "n": 10,
+      "encoded_input_bytes": 102,
+      "blind_candidates": 1024,
+      "blind_literal_scans": 2046,
+      "blind_wall_seconds": 0.000876,
+      "mstar_08_meter_work": 234,
+      "mstar_wall_seconds": 4.2e-05,
+      "mstar_certificate_verify_literal_scans": 10,
+      "mstar_proof_bytes": 85,
+      "status": "SAT"
+    },
+    {
+      "n": 12,
+      "encoded_input_bytes": 114,
+      "blind_candidates": 4096,
+      "blind_literal_scans": 8190,
+      "blind_wall_seconds": 0.00404,
+      "mstar_08_meter_work": 266,
+      "mstar_wall_seconds": 6.4e-05,
+      "mstar_certificate_verify_literal_scans": 12,
+      "mstar_proof_bytes": 95,
+      "status": "SAT"
+    },
+    {
+      "n": 14,
+      "encoded_input_bytes": 126,
+      "blind_candidates": 16384,
+      "blind_literal_scans": 32766,
+      "blind_wall_seconds": 0.018119,
+      "mstar_08_meter_work": 298,
+      "mstar_wall_seconds": 9.2e-05,
+      "mstar_certificate_verify_literal_scans": 14,
+      "mstar_proof_bytes": 105,
+      "status": "SAT"
+    },
+    {
+      "n": 16,
+      "encoded_input_bytes": 138,
+      "blind_candidates": 65536,
+      "blind_literal_scans": 131070,
+      "blind_wall_seconds": 0.076222,
+      "mstar_08_meter_work": 330,
+      "mstar_wall_seconds": 0.000129,
+      "mstar_certificate_verify_literal_scans": 16,
+      "mstar_proof_bytes": 115,
+      "status": "SAT"
+    }
+  ]
+}

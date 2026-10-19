@@ -1,0 +1,23 @@
+{
+  "database_digest": null,
+  "format": "MSTAR-0.8-DEV",
+  "guide_error": null,
+  "preserved_v07": true,
+  "problem_digest": "1cdb6273d4515f98486106a4b96216686c55907da41ae272044c584203c4457e",
+  "proof_bytes": 51,
+  "receipt": {
+    "assignment": [
+      false,
+      true,
+      true
+    ],
+    "kind": "sat-model"
+  },
+  "reserve_attempts": 0,
+  "status": "SAT",
+  "system": "sat-cnf",
+  "tick_attempts": 1,
+  "total_measured_work_units": 163,
+  "wall_seconds": 7.8e-05,
+  "work_budget": 100000
+}

@@ -1,0 +1,29 @@
+{
+  "database_digest": null,
+  "format": "MSTAR-0.8-DEV",
+  "guide_error": null,
+  "preserved_v07": true,
+  "problem_digest": "cb8785a0595003b73e9a0b70c52bb47e708044f7350fcfaaef59883cb78c488c",
+  "proof_bytes": 58,
+  "receipt": {
+    "kind": "horn",
+    "steps": [
+      {
+        "fact": 0
+      },
+      {
+        "rule": 0
+      },
+      {
+        "rule": 1
+      }
+    ]
+  },
+  "reserve_attempts": 0,
+  "status": "PROVED",
+  "system": "horn",
+  "tick_attempts": 1,
+  "total_measured_work_units": 199,
+  "wall_seconds": 0.00014,
+  "work_budget": 100000
+}

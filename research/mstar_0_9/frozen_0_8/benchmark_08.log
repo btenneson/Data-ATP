@@ -1,0 +1,8 @@
+n | exhaustive candidates | M* metered work | checked
+4 16 142 SAT
+6 64 172 SAT
+8 256 202 SAT
+10 1024 234 SAT
+12 4096 266 SAT
+14 16384 298 SAT
+16 65536 330 SAT

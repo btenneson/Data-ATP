@@ -1,0 +1,23 @@
+test_budget_unknown_not_false (test_mstar08.TestMstar08.test_budget_unknown_not_false) ... ok
+test_fair_reserve_uses_binary_alphabet (test_mstar08.TestMstar08.test_fair_reserve_uses_binary_alphabet) ... ok
+test_horn_multistep (test_mstar08.TestMstar08.test_horn_multistep) ... ok
+test_horn_reject_fake (test_mstar08.TestMstar08.test_horn_reject_fake) ... ok
+test_horn_unreachable_unknown (test_mstar08.TestMstar08.test_horn_unreachable_unknown) ... ok
+test_malicious_untrusted_payload (test_mstar08.TestMstar08.test_malicious_untrusted_payload) ... ok
+test_metamath_bad_goal_rejected (test_mstar08.TestMstar08.test_metamath_bad_goal_rejected) ... ok
+test_metamath_fixture (test_mstar08.TestMstar08.test_metamath_fixture) ... ok
+test_reserve_gets_ticks_on_unreachable_goal (test_mstar08.TestMstar08.test_reserve_gets_ticks_on_unreachable_goal) ... ok
+test_sat_corrupted_resolvent (test_mstar08.TestMstar08.test_sat_corrupted_resolvent) ... ok
+test_sat_model (test_mstar08.TestMstar08.test_sat_model) ... ok
+test_sat_reject_bad_model (test_mstar08.TestMstar08.test_sat_reject_bad_model) ... ok
+test_sat_reject_fake_unsat (test_mstar08.TestMstar08.test_sat_reject_fake_unsat) ... ok
+test_sat_unsat_four_clauses (test_mstar08.TestMstar08.test_sat_unsat_four_clauses) ... ok
+test_sat_unsat_unit_pair (test_mstar08.TestMstar08.test_sat_unsat_unit_pair) ... ok
+test_empty_cnf_is_certified_sat (test_random_sat.BoundarySAT.test_empty_cnf_is_certified_sat) ... ok
+test_empty_input_clause_is_certified_unsat (test_random_sat.BoundarySAT.test_empty_input_clause_is_certified_unsat) ... ok
+test_320_deterministic_small_cnf (test_random_sat.DifferentialSAT.test_320_deterministic_small_cnf) ... ok
+
+----------------------------------------------------------------------
+Ran 18 tests in 0.024s
+
+OK

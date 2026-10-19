@@ -1,0 +1,21 @@
+{
+  "facts": [
+    "start"
+  ],
+  "goal": "goal",
+  "rules": [
+    {
+      "if": [
+        "start"
+      ],
+      "then": "middle"
+    },
+    {
+      "if": [
+        "middle"
+      ],
+      "then": "goal"
+    }
+  ],
+  "system": "horn"
+}

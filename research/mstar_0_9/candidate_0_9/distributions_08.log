@@ -1,0 +1,6 @@
+random_3sat 4 12 / 12 95% CI [0.7575, 1]
+random_3sat 6 10 / 12 95% CI [0.552, 0.953]
+random_3sat 8 9 / 12 95% CI [0.4677, 0.9111]
+planted_3sat 4 12 / 12 95% CI [0.7575, 1]
+planted_3sat 6 12 / 12 95% CI [0.7575, 1]
+planted_3sat 8 12 / 12 95% CI [0.7575, 1]
